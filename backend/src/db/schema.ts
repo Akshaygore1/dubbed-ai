@@ -1,14 +1,11 @@
 import { pgTable, text, timestamp, uuid, pgEnum } from 'drizzle-orm/pg-core'
 
-export const jobStatusEnum = pgEnum('job_status', ['pending', 'processing', 'completed', 'failed'])
-
-export const contacts = pgTable('contacts', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull(),
-  message: text('message').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-})
+export const jobStatusEnum = pgEnum('job_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+])
 
 export const dubbingJobs = pgTable('dubbing_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -20,6 +17,10 @@ export const dubbingJobs = pgTable('dubbing_jobs', {
   status: jobStatusEnum('status').notNull().default('pending'),
   dubbedVideoUrl: text('dubbed_video_url'),
   errorMessage: text('error_message'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 })
