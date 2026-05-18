@@ -1,5 +1,3 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { extractAudioFromVideo } from "../../../lib/audio.js";
 import {
@@ -11,28 +9,31 @@ import {
 type ExtractAudioTaskInput = {
   jobId: string;
   videoKey: string;
+  tempDir: string;
 };
 
 type ExtractAudioTaskResult = {
   audioKey: string;
+  sourceVideoPath: string;
+  sourceAudioPath: string;
 };
 
 export const extractAudio = async ({
   jobId,
   videoKey,
+  tempDir,
 }: ExtractAudioTaskInput): Promise<ExtractAudioTaskResult> => {
-  const tempDir = await mkdtemp(path.join(tmpdir(), "dubbing-worker-"));
   const inputPath = path.join(tempDir, `${jobId}.input`);
   const outputPath = path.join(tempDir, `${jobId}.mp3`);
   const audioKey = createAudioObjectKey(jobId);
 
-  try {
-    await downloadObjectToFile(videoKey, inputPath);
-    const audioBuffer = await extractAudioFromVideo(inputPath, outputPath);
-    await uploadAudioToR2(audioKey, audioBuffer);
+  await downloadObjectToFile(videoKey, inputPath);
+  const audioBuffer = await extractAudioFromVideo(inputPath, outputPath);
+  await uploadAudioToR2(audioKey, audioBuffer);
 
-    return { audioKey };
-  } finally {
-    await rm(tempDir, { recursive: true, force: true });
-  }
+  return {
+    audioKey,
+    sourceVideoPath: inputPath,
+    sourceAudioPath: outputPath,
+  };
 };

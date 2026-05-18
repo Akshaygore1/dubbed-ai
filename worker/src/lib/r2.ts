@@ -21,6 +21,25 @@ export const createAudioObjectKey = (jobId: string) => {
   return `audio/${jobId}.mp3`
 }
 
+export const createDubbedAudioObjectKey = (jobId: string) => {
+  return `dubbed-audio/${jobId}.m4a`
+}
+
+export const createDubbedVideoObjectKey = (jobId: string) => {
+  return `dubbed/${jobId}.mp4`
+}
+
+export const getStoredObjectUrl = (key: string) => {
+  if (env.R2_VIDEO_URL_BASE) {
+    return new URL(
+      key,
+      `${env.R2_VIDEO_URL_BASE.replace(/\/$/, '')}/`,
+    ).toString()
+  }
+
+  return `${endpoint}/${env.R2_BUCKET_NAME}/${key}`
+}
+
 export const downloadObjectToFile = async (key: string, outputPath: string) => {
   const response = await r2Client.send(
     new GetObjectCommand({
@@ -40,13 +59,32 @@ export const downloadObjectToFile = async (key: string, outputPath: string) => {
   await pipeline(body, createWriteStream(outputPath))
 }
 
-export const uploadAudioToR2 = async (key: string, file: Buffer) => {
+export const uploadAudioToR2 = async (
+  key: string,
+  file: Buffer,
+  contentType = 'audio/mpeg',
+) => {
   await r2Client.send(
     new PutObjectCommand({
       Bucket: env.R2_BUCKET_NAME,
       Key: key,
       Body: file,
-      ContentType: 'audio/mpeg',
+      ContentType: contentType,
+    }),
+  )
+}
+
+export const uploadVideoToR2 = async (input: {
+  key: string
+  file: Buffer
+  contentType: string
+}) => {
+  await r2Client.send(
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: input.key,
+      Body: input.file,
+      ContentType: input.contentType,
     }),
   )
 }

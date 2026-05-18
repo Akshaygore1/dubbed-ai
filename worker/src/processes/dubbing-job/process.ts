@@ -1,8 +1,23 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { logger } from "../../lib/logger.js";
+import { cloneVoice } from "./tasks/clone-voice.js";
 import { extractAudio } from "./tasks/extract-audio.js";
-import { getDubbingJobById, updateDubbingJob } from "./repository.js";
+import { muxDubbedVideo } from "./tasks/mux-dubbed-video.js";
+import { synthesizeDubbedAudio } from "./tasks/synthesize-dubbed-audio.js";
+import { transcribeAudio } from "./tasks/transcribe-audio.js";
+import { translateTranscript } from "./tasks/translate-transcript.js";
+import {
+  getDubbingJobById,
+  updateDubbingJob,
+  updateDubbingJobIfStatus,
+} from "./repository.js";
 import type { DubbingJobMessage } from "./types.js";
 
 export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
+  logger.info("dubbing_job.received", { jobId });
+
   const job = await getDubbingJobById(jobId);
 
   if (!job) {
@@ -13,35 +28,156 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
     throw new Error(`Job ${jobId} is missing a source video key`);
   }
 
-  await updateDubbingJob(jobId, {
+  if (job.status === "completed") {
+    logger.warn("dubbing_job.skipped_completed", { jobId });
+    return;
+  }
+
+  if (job.status === "failed") {
+    logger.warn("dubbing_job.skipped_failed", {
+      jobId,
+      errorMessage: job.errorMessage,
+    });
+    return;
+  }
+
+  if (job.status === "processing") {
+    logger.warn("dubbing_job.skipped_processing", { jobId });
+    return;
+  }
+
+  const markedProcessing = await updateDubbingJobIfStatus(jobId, "pending", {
     status: "processing",
     errorMessage: null,
   });
 
+  if (!markedProcessing) {
+    logger.warn("dubbing_job.skipped_status_transition", {
+      jobId,
+      expectedStatus: "pending",
+    });
+    return;
+  }
+
+  logger.info("dubbing_job.processing", { jobId });
+
+  const tempDir = await mkdtemp(path.join(tmpdir(), "dubbing-worker-"));
+  let currentStep = "mark_processing";
+
   try {
-    const { audioKey } = await extractAudio({
+    currentStep = "extract_audio";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const { audioKey, sourceAudioPath, sourceVideoPath } = await extractAudio({
       jobId,
       videoKey: job.videoKey,
+      tempDir,
     });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
 
     await updateDubbingJob(jobId, {
       audioKey,
+    });
+
+    currentStep = "transcribe_audio";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const transcription = await transcribeAudio({
+      sourceAudioPath,
+    });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+    const sourceLanguage = transcription.detectedLanguageCode ?? job.sourceLanguage;
+
+    await updateDubbingJob(jobId, {
+      transcriptionLanguage: sourceLanguage,
+      transcriptJson: JSON.stringify(transcription.segments),
+    });
+
+    currentStep = "clone_voice";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const { voiceId } = await cloneVoice({
+      jobId,
+      sourceAudioPath,
+      sourceLanguage,
+      tempDir,
+    });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+
+    await updateDubbingJob(jobId, {
+      voiceCloneId: voiceId,
+    });
+
+    currentStep = "translate_transcript";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const translatedSegments = await translateTranscript({
+      segments: transcription.segments,
+      sourceLanguage,
+      targetLanguage: job.targetLanguage,
+    });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+
+    await updateDubbingJob(jobId, {
+      translationJson: JSON.stringify(translatedSegments),
+    });
+
+    currentStep = "synthesize_dubbed_audio";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const { dubbedAudioPath, dubbedAudioKey } = await synthesizeDubbedAudio({
+      jobId,
+      sourceAudioPath,
+      voiceId,
+      segments: translatedSegments,
+      tempDir,
+    });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+
+    await updateDubbingJob(jobId, {
+      dubbedAudioKey,
+    });
+
+    currentStep = "mux_dubbed_video";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const { dubbedVideoKey, dubbedVideoUrl } = await muxDubbedVideo({
+      jobId,
+      sourceVideoPath,
+      dubbedAudioPath,
+      tempDir,
+    });
+    logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+
+    await updateDubbingJob(jobId, {
+      dubbedAudioKey,
+      dubbedVideoKey,
+      dubbedVideoUrl,
       status: "completed",
       errorMessage: null,
     });
 
-    console.info(`Processed dubbing job ${jobId}`);
+    logger.info("dubbing_job.completed", { jobId });
   } catch (error) {
     const message =
       error instanceof Error
         ? error.message
         : "Worker failed to process dubbing job";
 
-    await updateDubbingJob(jobId, {
-      status: "failed",
-      errorMessage: message,
+    logger.error("dubbing_job.failed", error, {
+      jobId,
+      step: currentStep,
     });
 
+    try {
+      await updateDubbingJob(jobId, {
+        status: "failed",
+        errorMessage: message,
+      });
+    } catch (updateError) {
+      logger.error("dubbing_job.failed_persist_error", updateError, {
+        jobId,
+        step: currentStep,
+        originalErrorMessage: message,
+      });
+    }
+
     throw error;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
   }
 };

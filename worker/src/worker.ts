@@ -1,6 +1,7 @@
 import PgBoss from "pg-boss";
 import { env } from "./config/env.js";
 import { pool } from "./db/client.js";
+import { logger } from "./lib/logger.js";
 import { registerDubbingJobWorker } from "./processes/dubbing-job/index.js";
 
 const boss = new PgBoss({
@@ -12,18 +13,25 @@ const startWorker = async () => {
   await boss.start();
   await registerDubbingJobWorker(boss);
 
-  console.info("Worker is listening for jobs");
+  logger.info("worker.ready");
 };
 
 const shutdown = async (signal: string) => {
-  console.info(`${signal} received. Closing worker...`);
-  await boss.stop();
-  await pool.end();
-  process.exit(0);
+  logger.info("worker.shutdown.started", { signal });
+
+  try {
+    await boss.stop();
+    await pool.end();
+    logger.info("worker.shutdown.completed", { signal });
+    process.exit(0);
+  } catch (error) {
+    logger.error("worker.shutdown.failed", error, { signal });
+    process.exit(1);
+  }
 };
 
 void startWorker().catch(async (error) => {
-  console.error("Worker failed to start", error);
+  logger.error("worker.start.failed", error);
   await pool.end();
   process.exit(1);
 });
@@ -34,4 +42,15 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
   void shutdown("SIGTERM");
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("worker.unhandled_rejection", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("worker.uncaught_exception", error);
+  void pool.end().finally(() => {
+    process.exit(1);
+  });
 });

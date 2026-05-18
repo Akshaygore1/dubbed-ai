@@ -1,5 +1,6 @@
 import { Film, Globe2, Zap } from "lucide-react";
 import { DubbingForm } from "../features/dubbing/dubbing-form";
+import { DubbingJobsTable } from "../features/dubbing/dubbing-jobs-table";
 
 const features = [
   {
@@ -53,6 +54,10 @@ export function HomePage() {
         <div className="flex justify-center lg:justify-end">
           <DubbingForm />
         </div>
+      </section>
+
+      <section className="mt-20">
+        <DubbingJobsTable />
       </section>
     </main>
   );

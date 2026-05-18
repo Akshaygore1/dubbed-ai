@@ -55,6 +55,10 @@ export const getSignedVideoUrl = async (key: string) => {
   )
 }
 
+export const getSignedObjectUrl = async (key: string) => {
+  return getSignedVideoUrl(key)
+}
+
 export const getStoredVideoUrl = (key: string) => {
   if (env.R2_VIDEO_URL_BASE) {
     return new URL(

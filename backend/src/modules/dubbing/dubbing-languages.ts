@@ -1,0 +1,27 @@
+export const DUBBING_LANGUAGES = [
+  { code: 'as-IN', name: 'Assamese' },
+  { code: 'bn-IN', name: 'Bengali' },
+  { code: 'brx-IN', name: 'Bodo' },
+  { code: 'doi-IN', name: 'Dogri' },
+  { code: 'en-IN', name: 'English' },
+  { code: 'gu-IN', name: 'Gujarati' },
+  { code: 'hi-IN', name: 'Hindi' },
+  { code: 'kn-IN', name: 'Kannada' },
+  { code: 'kok-IN', name: 'Konkani' },
+  { code: 'ks-IN', name: 'Kashmiri' },
+  { code: 'mai-IN', name: 'Maithili' },
+  { code: 'ml-IN', name: 'Malayalam' },
+  { code: 'mni-IN', name: 'Manipuri' },
+  { code: 'mr-IN', name: 'Marathi' },
+  { code: 'ne-IN', name: 'Nepali' },
+  { code: 'od-IN', name: 'Odia' },
+  { code: 'pa-IN', name: 'Punjabi' },
+  { code: 'sa-IN', name: 'Sanskrit' },
+  { code: 'sat-IN', name: 'Santali' },
+  { code: 'sd-IN', name: 'Sindhi' },
+  { code: 'ta-IN', name: 'Tamil' },
+  { code: 'te-IN', name: 'Telugu' },
+  { code: 'ur-IN', name: 'Urdu' },
+] as const
+
+export const DUBBING_LANGUAGE_CODES = DUBBING_LANGUAGES.map((language) => language.code)

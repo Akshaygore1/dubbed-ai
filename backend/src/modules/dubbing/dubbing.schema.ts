@@ -1,8 +1,20 @@
 import { z } from 'zod'
+import { DUBBING_LANGUAGE_CODES } from './dubbing-languages.js'
 
 export const createDubbingSchema = z.object({
-  sourceLanguage: z.string().min(2).max(10),
-  targetLanguage: z.string().min(2).max(10),
+  sourceLanguage: z.enum(DUBBING_LANGUAGE_CODES),
+  targetLanguage: z.enum(DUBBING_LANGUAGE_CODES),
+})
+
+export const transcriptSegmentSchema = z.object({
+  index: z.number().int().nonnegative(),
+  sourceText: z.string(),
+  translatedText: z.string().optional(),
+  startTimeSeconds: z.number(),
+  endTimeSeconds: z.number(),
+  speakerId: z.string().nullable(),
+  emotion: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const dubbingJobResponseSchema = z.object({
@@ -11,8 +23,15 @@ export const dubbingJobResponseSchema = z.object({
   videoKey: z.string().nullable(),
   audioKey: z.string().nullable(),
   audioUrl: z.string().url().nullable(),
+  dubbedAudioKey: z.string().nullable(),
+  dubbedAudioUrl: z.string().url().nullable(),
+  dubbedVideoKey: z.string().nullable(),
   sourceLanguage: z.string(),
   targetLanguage: z.string(),
+  transcriptionLanguage: z.string().nullable(),
+  voiceCloneId: z.string().nullable(),
+  transcriptSegments: z.array(transcriptSegmentSchema).nullable(),
+  translatedSegments: z.array(transcriptSegmentSchema).nullable(),
   status: z.enum(['pending', 'processing', 'completed', 'failed']),
   dubbedVideoUrl: z.string().url().nullable(),
   errorMessage: z.string().nullable(),
