@@ -1,64 +1,84 @@
-import { Film, Globe2, Zap } from "lucide-react";
-import { DubbingForm } from "../features/dubbing/dubbing-form";
-import { DubbingJobsTable } from "../features/dubbing/dubbing-jobs-table";
-
-const features = [
-  {
-    title: "AI Translation",
-    description: "Automatically translate and lip-sync videos to any language.",
-    icon: Film,
-  },
-  {
-    title: "12+ Languages",
-    description: "English, Spanish, French, German, Japanese, and more.",
-    icon: Globe2,
-  },
-  {
-    title: "Fast Delivery",
-    description: "Get your dubbed video in minutes, not hours.",
-    icon: Zap,
-  },
-];
+import { useQueryClient } from '@tanstack/react-query'
+import { LoaderCircle, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import { AuthPanel } from '@/features/auth/auth-panel'
+import { DubbingForm } from '@/features/dubbing/dubbing-form'
+import { DubbingJobsTable } from '@/features/dubbing/dubbing-jobs-table'
+import { useDubbingJobs } from '@/features/dubbing/use-dubbing-jobs'
+import { authClient } from '@/lib/auth-client'
 
 export function HomePage() {
+  const session = authClient.useSession()
+
+  if (session.isPending) {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-[var(--color-text-dim)]">
+        <LoaderCircle className="mr-3 size-4 animate-spin text-[var(--color-accent)]" />
+        Loading workspace
+      </main>
+    )
+  }
+
+  if (!session.data) {
+    return <AuthPanel />
+  }
+
+  return <AuthenticatedHome userName={session.data.user.name || session.data.user.email} />
+}
+
+function AuthenticatedHome({ userName }: { userName: string }) {
+  const queryClient = useQueryClient()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const { data: jobs, isLoading: isLoadingJobs } = useDubbingJobs()
+  const hasJobs = Boolean(jobs?.length)
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    await authClient.signOut()
+    queryClient.clear()
+    setIsSigningOut(false)
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-20 lg:px-12">
-      <section className="grid gap-16 lg:grid-cols-2 lg:items-center">
-        <div className="space-y-8">
-          <div className="space-y-6">
-            <p className="text-xs uppercase tracking-[0.4em] text-[var(--color-accent)]">
-              Auto Dubbing AI
-            </p>
-            <h1 className="font-serif text-6xl font-normal leading-[1.1] tracking-tight text-[var(--color-text)]">
-              Translate your videos into any language.
-            </h1>
-            <p className="max-w-md text-sm leading-relaxed text-[var(--color-text-dim)]">
-              Upload a video or paste a URL, select source and target languages, 
-              and let AI automatically dub your content with natural voiceovers.
-            </p>
-          </div>
-
-          <div className="flex gap-8">
-            {features.map(({ title, description, icon: Icon }) => (
-              <div key={title} className="space-y-2">
-                <Icon className="size-4 text-[var(--color-accent)]" />
-                <p className="text-xs uppercase tracking-wider text-[var(--color-text)]">
-                  {title}
-                </p>
-                <p className="text-xs text-[var(--color-text-dim)]">{description}</p>
-              </div>
-            ))}
-          </div>
+    <main className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-8 md:px-8 lg:px-12">
+      <header className="mb-10 flex flex-col gap-4 border-b border-[var(--color-border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.35em] text-[var(--color-accent)]">
+            Signed in
+          </p>
+          <p className="mt-2 text-sm text-[var(--color-text-dim)]">
+            {userName}
+          </p>
         </div>
+        <button
+          className="flex w-fit items-center gap-2 border border-[var(--color-border)] bg-black/20 px-4 py-2 text-xs uppercase tracking-wider text-[var(--color-text-dim)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isSigningOut}
+          onClick={handleSignOut}
+          type="button"
+        >
+          {isSigningOut ? (
+            <LoaderCircle className="size-4 animate-spin" />
+          ) : (
+            <LogOut className="size-4" />
+          )}
+          Sign out
+        </button>
+      </header>
 
-        <div className="flex justify-center lg:justify-end">
-          <DubbingForm />
-        </div>
+      <section className="mx-auto flex w-full max-w-3xl justify-center py-4 lg:py-10">
+        <DubbingForm isEmptyState={!hasJobs} />
       </section>
 
-      <section className="mt-20">
-        <DubbingJobsTable />
-      </section>
+      {hasJobs ? (
+        <section className="mt-14">
+          <DubbingJobsTable />
+        </section>
+      ) : isLoadingJobs ? (
+        <div className="mt-10 flex items-center justify-center gap-3 text-xs uppercase tracking-[0.22em] text-[var(--color-text-dim)]">
+          <LoaderCircle className="size-4 animate-spin text-[var(--color-accent)]" />
+          Checking queue
+        </div>
+      ) : null}
     </main>
-  );
+  )
 }

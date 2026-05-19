@@ -4,6 +4,7 @@ export const jobStatusEnum = pgEnum('job_status', ['pending', 'processing', 'com
 
 export const dubbingJobs = pgTable('dubbing_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id'),
   videoUrl: text('video_url'),
   videoKey: text('video_key'),
   audioKey: text('audio_key'),

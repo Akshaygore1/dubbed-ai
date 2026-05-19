@@ -2,13 +2,14 @@
 @import 'tailwindcss';
 
 :root {
-  --color-bg: #000000;
-  --color-surface: #0a0a0a;
-  --color-border: #262626;
-  --color-text: #fafafa;
-  --color-text-dim: #a3a3a3;
-  --color-accent: #f59e0b;
-  --color-accent-hover: #d97706;
+  --color-bg: #050403;
+  --color-surface: #0c0a07;
+  --color-panel: #12100b;
+  --color-border: #2e291f;
+  --color-text: #fff8ea;
+  --color-text-dim: #b8ad99;
+  --color-accent: #f5b84b;
+  --color-accent-hover: #ffd27a;
   
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   line-height: 1.5;
@@ -28,10 +29,54 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(245, 184, 75, 0.22), transparent 30rem),
+    radial-gradient(circle at 82% 18%, rgba(55, 91, 84, 0.32), transparent 34rem),
+    linear-gradient(135deg, rgba(245, 184, 75, 0.08) 0 1px, transparent 1px 14px),
+    var(--color-bg);
   color: var(--color-text);
 }
 
+body::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+body::after {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+}
+
 #root {
+  isolation: isolate;
   min-height: 100vh;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  caret-color: var(--color-text);
+  transition: background-color 9999s ease-out 0s;
 }

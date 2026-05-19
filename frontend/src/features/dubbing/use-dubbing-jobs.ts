@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../lib/api'
+import { api } from '@/lib/api'
+import { env } from '@/lib/env'
 
 export type DubbingJob = {
   id: string
   videoUrl: string | null
   videoKey: string | null
   audioKey: string | null
+  dubbedAudioKey: string | null
+  dubbedVideoKey: string | null
   sourceLanguage: string
   targetLanguage: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
@@ -27,8 +30,15 @@ const fetchDubbingJobs = async () => {
 
 export const dubbingJobsQueryKey = ['dubbing-jobs'] as const
 
+export const getDubbingJobDownloadUrl = (jobId: string) =>
+  `${env.apiUrl}/dubbing/${jobId}/download`
+
 export const useDubbingJobs = () =>
   useQuery({
     queryKey: dubbingJobsQueryKey,
     queryFn: fetchDubbingJobs,
+    refetchInterval: (query) =>
+      query.state.data?.some((job) => job.status === 'pending' || job.status === 'processing')
+        ? 3000
+        : false,
   })

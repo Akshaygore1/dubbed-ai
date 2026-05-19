@@ -59,6 +59,21 @@ export const getSignedObjectUrl = async (key: string) => {
   return getSignedVideoUrl(key)
 }
 
+export const getSignedObjectDownloadUrl = async (
+  key: string,
+  filename: string,
+) => {
+  return getSignedUrl(
+    r2Client,
+    new GetObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${filename}"`,
+    }),
+    { expiresIn: env.R2_SIGNED_URL_TTL_SECONDS },
+  )
+}
+
 export const getStoredVideoUrl = (key: string) => {
   if (env.R2_VIDEO_URL_BASE) {
     return new URL(

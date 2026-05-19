@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { api } from '../../lib/api'
+import { api } from '@/lib/api'
 import { dubbingSchema, type DubbingFormData } from './dubbing-schema'
 import { dubbingJobsQueryKey } from './use-dubbing-jobs'
 

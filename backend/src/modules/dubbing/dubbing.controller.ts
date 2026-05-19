@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import multer from 'multer'
 import { db } from '../../db/client.js'
 import { dubbingJobs } from '../../db/schema.js'
@@ -7,6 +7,7 @@ import { createDubbingSchema } from './dubbing.schema.js'
 import { HttpError } from '../../lib/http-error.js'
 import {
   createVideoObjectKey,
+  getSignedObjectDownloadUrl,
   getSignedObjectUrl,
   getSignedVideoUrl,
   getStoredVideoUrl,
@@ -104,6 +105,35 @@ const toDubbingJobResponse = async (
   }
 }
 
+const getAuthenticatedUserId = (res: Response) => {
+  const userId = res.locals.userId
+
+  if (typeof userId !== 'string' || userId.length === 0) {
+    throw new HttpError(401, 'Authentication required')
+  }
+
+  return userId
+}
+
+const getScopedDubbingJob = async (id: string, userId: string) => {
+  const [job] = await db
+    .select(selectDubbingJobFields)
+    .from(dubbingJobs)
+    .where(and(eq(dubbingJobs.id, id), eq(dubbingJobs.userId, userId)))
+
+  return job
+}
+
+const getJobIdParam = (req: Request) => {
+  const idParam = req.params.id
+
+  if (typeof idParam !== 'string') {
+    throw new HttpError(400, 'Job id is required')
+  }
+
+  return idParam
+}
+
 export const uploadVideo = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -120,6 +150,7 @@ export const uploadVideo = multer({
 })
 
 export const createDubbingJob = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
   const payload = createDubbingSchema.parse(req.body)
   const file = req.file
 
@@ -138,6 +169,7 @@ export const createDubbingJob = async (req: Request, res: Response) => {
   const videoUrl = getStoredVideoUrl(videoKey)
 
   const [job] = await db.insert(dubbingJobs).values({
+    userId,
     videoUrl,
     videoKey,
     sourceLanguage: payload.sourceLanguage,
@@ -174,9 +206,11 @@ export const createDubbingJob = async (req: Request, res: Response) => {
 }
 
 export const listDubbingJobs = async (_req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
   const jobs = await db
     .select(selectDubbingJobFields)
     .from(dubbingJobs)
+    .where(eq(dubbingJobs.userId, userId))
     .orderBy(desc(dubbingJobs.createdAt))
 
   res.json({
@@ -186,18 +220,9 @@ export const listDubbingJobs = async (_req: Request, res: Response) => {
 }
 
 export const getDubbingJob = async (req: Request, res: Response) => {
-  const idParam = req.params.id
-
-  if (typeof idParam !== 'string') {
-    throw new HttpError(400, 'Job id is required')
-  }
-
-  const id = idParam
-
-  const [job] = await db
-    .select(selectDubbingJobFields)
-    .from(dubbingJobs)
-    .where(eq(dubbingJobs.id, id))
+  const userId = getAuthenticatedUserId(res)
+  const id = getJobIdParam(req)
+  const job = await getScopedDubbingJob(id, userId)
 
   if (!job) {
     throw new HttpError(404, 'Job not found')
@@ -207,4 +232,25 @@ export const getDubbingJob = async (req: Request, res: Response) => {
     success: true,
     data: await toDubbingJobResponse(job),
   })
+}
+
+export const downloadDubbingJobVideo = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
+  const id = getJobIdParam(req)
+  const job = await getScopedDubbingJob(id, userId)
+
+  if (!job) {
+    throw new HttpError(404, 'Job not found')
+  }
+
+  if (job.status !== 'completed' || !job.dubbedVideoKey) {
+    throw new HttpError(409, 'Dubbed video is not ready for download')
+  }
+
+  const downloadUrl = await getSignedObjectDownloadUrl(
+    job.dubbedVideoKey,
+    `dubbed-video-${job.id}.mp4`,
+  )
+
+  res.redirect(downloadUrl)
 }

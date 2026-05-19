@@ -2,13 +2,16 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import './index.css'
-import { QueryProvider } from './app/providers/query-provider'
-import { router } from './router'
+import { QueryProvider } from '@/app/providers/query-provider'
+import { SnackbarProvider } from '@/app/providers/snackbar-provider'
+import { router } from '@/router'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryProvider>
-      <RouterProvider router={router} />
+      <SnackbarProvider>
+        <RouterProvider router={router} />
+      </SnackbarProvider>
     </QueryProvider>
   </StrictMode>,
 )

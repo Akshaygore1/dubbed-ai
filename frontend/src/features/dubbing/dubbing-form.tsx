@@ -1,14 +1,22 @@
-import { LoaderCircle, Film, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { Film, LoaderCircle, UploadCloud, X } from 'lucide-react'
+import { useCallback, useId, useState } from 'react'
 import type { SubmitHandler } from 'react-hook-form'
-import { useDubbingForm } from './use-dubbing-form'
+import { useSnackbar } from '@/app/providers/snackbar-context'
+import { cn } from '@/lib/utils'
 import { LANGUAGES, type DubbingFormData } from './dubbing-schema'
+import { useDubbingForm } from './use-dubbing-form'
 
-export function DubbingForm() {
+type DubbingFormProps = {
+  isEmptyState?: boolean
+}
+
+export function DubbingForm({ isEmptyState = false }: DubbingFormProps) {
+  const inputId = useId()
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
-  
+  const { showSnackbar } = useSnackbar()
+
   const { form, mutation } = useDubbingForm()
   const {
     register,
@@ -59,6 +67,10 @@ export function DubbingForm() {
   const onSubmit: SubmitHandler<DubbingFormData> = (values) => {
     if (!videoFile) {
       setFileError('Please drop a video file before submitting')
+      showSnackbar({
+        message: 'Add a video file before starting processing.',
+        variant: 'error',
+      })
       return
     }
 
@@ -70,38 +82,69 @@ export function DubbingForm() {
       onSuccess: () => {
         setVideoFile(null)
         setFileError(null)
+        showSnackbar({
+          message: 'Video submitted. The status table will update automatically.',
+          variant: 'success',
+        })
+      },
+      onError: () => {
+        showSnackbar({
+          message: 'Unable to submit the video. Check the file and try again.',
+          variant: 'error',
+        })
       },
     })
   }
 
   return (
     <form
-      className="w-full max-w-md"
+      className={cn(
+        'w-full border border-[var(--color-border)] bg-[var(--color-panel)]/90 p-4 shadow-2xl shadow-black/30 backdrop-blur md:p-5',
+        isEmptyState ? 'max-w-3xl' : 'max-w-xl',
+      )}
       onSubmit={handleSubmit(onSubmit)}
     >
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.35em] text-[var(--color-accent)]">
+            Upload Window
+          </p>
+          <h2 className="mt-3 font-serif text-3xl leading-none text-[var(--color-text)] md:text-4xl">
+            Drop one video.
+          </h2>
+        </div>
+        <div className="hidden rounded-full border border-[var(--color-border)] px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-dim)] sm:block">
+          MP4 MOV WebM
+        </div>
+      </div>
+
       <div className="mb-4">
         <div
-          className={`relative flex cursor-pointer flex-col items-center justify-center border border-dashed py-8 transition ${
-            isDragging
-              ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-              : videoFile
-                ? 'border-[var(--color-accent)]/50'
-                : 'border-[var(--color-border)] hover:border-[var(--color-text-dim)]'
-          }`}
+          className={cn(
+            'relative flex min-h-64 flex-col items-center justify-center overflow-hidden border border-dashed px-6 py-10 text-center transition md:min-h-80',
+            isDragging && 'border-[var(--color-accent)] bg-[var(--color-accent)]/10',
+            videoFile && !isDragging && 'border-[var(--color-accent)]/60 bg-white/[0.03]',
+            !videoFile && !isDragging && 'border-[var(--color-border)] hover:border-[var(--color-text-dim)]',
+          )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          <div className="pointer-events-none absolute inset-x-8 top-8 h-px bg-gradient-to-r from-transparent via-[var(--color-accent)]/60 to-transparent" />
           {videoFile ? (
-            <div className="flex w-full flex-col items-center gap-2">
-              <Film className="size-6 text-[var(--color-accent)]" />
-              <span className="max-w-[200px] truncate text-sm">{videoFile.name}</span>
+            <div className="flex w-full flex-col items-center gap-3">
+              <div className="flex size-16 items-center justify-center rounded-full border border-[var(--color-accent)]/50 bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                <Film className="size-7" />
+              </div>
+              <span className="max-w-full truncate text-lg text-[var(--color-text)]">
+                {videoFile.name}
+              </span>
               <span className="text-xs text-[var(--color-text-dim)]">
                 {(videoFile.size / 1024 / 1024).toFixed(2)} MB
               </span>
               <button
                 type="button"
-                className="absolute right-2 top-2 text-[var(--color-text-dim)] transition hover:text-[var(--color-text)]"
+                className="absolute right-4 top-4 z-10 text-[var(--color-text-dim)] transition hover:text-[var(--color-text)]"
                 onClick={clearFile}
               >
                 <X className="size-4" />
@@ -109,19 +152,26 @@ export function DubbingForm() {
             </div>
           ) : (
             <>
-              <Film className="mb-2 size-5 text-[var(--color-text-dim)]" />
-              <p className="text-xs text-[var(--color-text-dim)]">
-                Drag and drop a video here or click to browse
+              <div className="mb-5 flex size-16 items-center justify-center rounded-full border border-[var(--color-border)] bg-black/30 text-[var(--color-accent)]">
+                <UploadCloud className="size-7" />
+              </div>
+              <p className="text-lg text-[var(--color-text)]">
+                Drag a video here, or click to browse.
               </p>
-              <p className="mt-1 text-[10px] uppercase tracking-wider text-[var(--color-text-dim)]">
-                MP4 · MOV · WebM
+              <p className="mt-3 max-w-sm text-xs leading-relaxed text-[var(--color-text-dim)]">
+                Your upload starts a dubbing job tied to this account. Choose the source
+                and target language below before processing.
               </p>
             </>
           )}
+          <label className="absolute inset-0 cursor-pointer" htmlFor={inputId}>
+            <span className="sr-only">Choose a video file</span>
+          </label>
           <input
+            id={inputId}
             type="file"
             accept="video/*"
-            className="absolute inset-0 cursor-pointer opacity-0"
+            className="sr-only"
             onChange={handleFileSelect}
           />
         </div>
@@ -134,11 +184,17 @@ export function DubbingForm() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div>
+          <label
+            className="mb-2 block text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-dim)]"
+            htmlFor="sourceLanguage"
+          >
+            Source Language
+          </label>
           <select
             id="sourceLanguage"
-            className={`w-full border-b border-[var(--color-border)] bg-transparent py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
+            className={`w-full border border-[var(--color-border)] bg-black/20 px-3 py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
               errors.sourceLanguage ? 'border-red-500' : ''
             }`}
             {...register('sourceLanguage')}
@@ -153,9 +209,15 @@ export function DubbingForm() {
         </div>
 
         <div>
+          <label
+            className="mb-2 block text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-dim)]"
+            htmlFor="targetLanguage"
+          >
+            Target Language
+          </label>
           <select
             id="targetLanguage"
-            className={`w-full border-b border-[var(--color-border)] bg-transparent py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
+            className={`w-full border border-[var(--color-border)] bg-black/20 px-3 py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
               errors.targetLanguage ? 'border-red-500' : ''
             }`}
             {...register('targetLanguage')}
@@ -173,21 +235,21 @@ export function DubbingForm() {
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="w-full border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-sm font-medium uppercase tracking-wider text-black transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-4 text-sm font-medium uppercase tracking-[0.18em] text-black transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {mutation.isPending ? (
           <span className="flex items-center justify-center gap-2">
             <LoaderCircle className="size-4 animate-spin" />
-            Processing
+            Uploading
           </span>
         ) : (
-          'Start Dubbing'
+          'Start Processing'
         )}
       </button>
 
       {mutation.isSuccess && (
         <p className="mt-4 text-xs text-[var(--color-accent)]">
-          Video submitted. You'll be notified when ready.
+          Video submitted. The status table will update while processing runs.
         </p>
       )}
       {mutation.isError && (

@@ -9,6 +9,10 @@ const envSchema = z.object({
     .default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   CLIENT_URL: z.url().default('http://localhost:5173'),
+  BETTER_AUTH_URL: z.url().default('http://localhost:4000'),
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, 'BETTER_AUTH_SECRET must be at least 32 characters long'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   PG_BOSS_SCHEMA: z.string().min(1).default('pgboss'),
   R2_ACCOUNT_ID: z.string().min(1, 'R2_ACCOUNT_ID is required'),

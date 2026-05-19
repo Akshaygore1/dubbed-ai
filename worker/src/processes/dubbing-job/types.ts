@@ -15,6 +15,15 @@ export type TranscriptSegment = {
   metadata?: Record<string, unknown>;
 };
 
+export type PreparedDubSegment = {
+  segmentIndex: number;
+  audioPath: string;
+  startTimeSeconds: number;
+  endTimeSeconds: number;
+  targetDurationSeconds: number;
+  actualDurationSeconds: number;
+};
+
 export type TranscriptionResult = {
   transcript: string;
   detectedLanguageCode: string | null;

@@ -3,6 +3,8 @@ import express from 'express'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import { toNodeHandler } from 'better-auth/node'
+import { auth } from './auth.js'
 import { env } from './config/env.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { notFoundHandler } from './middleware/not-found.js'
@@ -26,6 +28,7 @@ app.use(
   }),
 )
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+app.all('/api/auth/*splat', toNodeHandler(auth))
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true }))
 
