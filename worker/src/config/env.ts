@@ -16,14 +16,14 @@ const envSchema = z.object({
   SARVAM_API_KEY: z.string().min(1, 'SARVAM_API_KEY is required'),
   SARVAM_TRANSLATION_MODE: z
     .enum(['formal', 'modern-colloquial', 'classic-colloquial'])
-    .default('formal'),
+    .default('modern-colloquial'),
   SARVAM_TRANSLATION_NUMERALS_FORMAT: z
     .enum(['native', 'international'])
     .default('international'),
   SARVAM_TRANSLATION_SPEAKER_GENDER: z.enum(['Male', 'Female']).optional(),
   SMALLEST_API_KEY: z.string().min(1, 'SMALLEST_API_KEY is required'),
   SMALLEST_API_BASE_URL: z.url().default('https://api.smallest.ai'),
-  SMALLEST_TTS_MODEL: z.string().min(1).default('lightning-v3.1'),
+  SMALLEST_TTS_MODEL: z.string().min(1).default('lightning_v3.1'),
   SMALLEST_VOICE_CLONE_ACCENT: z.string().min(1).default('general'),
   SMALLEST_VOICE_CLONE_TAGS: z.string().optional(),
 })

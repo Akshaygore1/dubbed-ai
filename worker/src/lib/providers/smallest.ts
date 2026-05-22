@@ -2,6 +2,7 @@ import path from 'node:path'
 import { readFile, writeFile } from 'node:fs/promises'
 import { env } from '../../config/env.js'
 import { logger } from '../logger.js'
+import { toSmallestLanguageCode } from './smallest-languages.js'
 
 const getResponseMessage = async (response: Response) => {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
@@ -32,6 +33,8 @@ const getResponseMessage = async (response: Response) => {
 const normalizeLanguageCode = (languageCode: string) => {
   return languageCode.split('-')[0]?.toLowerCase() ?? 'en'
 }
+
+const normalizeTtsModel = (model: string) => model.replaceAll('-', '_')
 
 const getAudioContentType = (samplePath: string) => {
   const extension = path.extname(samplePath).toLowerCase()
@@ -131,10 +134,12 @@ export const createVoiceClone = async (input: {
 export const synthesizeVoiceCloneSpeech = async (input: {
   text: string
   voiceId: string
+  languageCode: string
+  speed?: number
   outputPathStem: string
 }) => {
   const response = await fetch(
-    `${env.SMALLEST_API_BASE_URL}/waves/v1/${env.SMALLEST_TTS_MODEL}/get_speech`,
+    `${env.SMALLEST_API_BASE_URL}/waves/v1/tts`,
     {
       method: 'POST',
       headers: {
@@ -145,7 +150,10 @@ export const synthesizeVoiceCloneSpeech = async (input: {
       body: JSON.stringify({
         text: input.text,
         voice_id: input.voiceId,
+        model: normalizeTtsModel(env.SMALLEST_TTS_MODEL),
         sample_rate: 44100,
+        speed: input.speed ?? 1,
+        language: toSmallestLanguageCode(input.languageCode),
         output_format: 'wav',
       }),
     },
