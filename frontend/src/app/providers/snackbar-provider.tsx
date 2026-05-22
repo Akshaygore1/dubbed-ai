@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils'
 import { SnackbarContext, type Snackbar, type ShowSnackbarInput } from './snackbar-context'
 
 const snackbarStyles = {
-  success: 'border-emerald-300/30 bg-emerald-300/10 text-emerald-100',
-  error: 'border-red-400/30 bg-red-400/10 text-red-100',
-  info: 'border-[var(--color-border)] bg-[var(--color-panel)]/95 text-[var(--color-text)]',
+  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  error: 'border-red-200 bg-red-50 text-red-800',
+  info: 'border-(--color-border) bg-(--color-surface) text-(--color-text)',
 } as const
 
 const snackbarIcons = {
@@ -77,7 +77,7 @@ function SnackbarItem({
   return (
     <div
       className={cn(
-        'flex items-start gap-3 border px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur',
+        'flex items-start gap-3 rounded-md border px-4 py-3 shadow-[0_18px_48px_rgba(21,23,19,0.16)] backdrop-blur',
         snackbarStyles[snackbar.variant],
       )}
       role="status"

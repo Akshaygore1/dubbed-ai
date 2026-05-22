@@ -1,25 +1,38 @@
-import { LoaderCircle, Lock, Mail, User, UserPlus } from 'lucide-react'
+import {
+  ArrowLeft,
+  AudioWaveform,
+  CheckCircle2,
+  LoaderCircle,
+  Lock,
+  Mail,
+  User,
+  UserPlus,
+} from 'lucide-react'
 import { type FormEvent, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { authClient } from '@/lib/auth-client'
 
 type AuthMode = 'sign-in' | 'sign-up'
 
 const authCopy = {
   'sign-in': {
-    eyebrow: 'Private workspace',
-    title: 'Sign in to continue.',
+    eyebrow: 'Private studio',
+    title: 'Sign in to DubStudio.',
     action: 'Sign in',
     alternate: 'Create an account',
   },
   'sign-up': {
-    eyebrow: 'New account',
+    eyebrow: 'New studio',
     title: 'Create your workspace.',
     action: 'Create account',
     alternate: 'Use an existing account',
   },
 } as const
 
+const authHighlights = ['Private uploads', 'Live job status', 'Signed downloads']
+
 export function AuthPanel() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<AuthMode>('sign-in')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -33,23 +46,30 @@ export function AuthPanel() {
     setError(null)
     setIsSubmitting(true)
 
-    const result =
-      mode === 'sign-in'
-        ? await authClient.signIn.email({
-            email,
-            password,
-            rememberMe: true,
-          })
-        : await authClient.signUp.email({
-            name,
-            email,
-            password,
-          })
+    try {
+      const result =
+        mode === 'sign-in'
+          ? await authClient.signIn.email({
+              email,
+              password,
+              rememberMe: true,
+            })
+          : await authClient.signUp.email({
+              name,
+              email,
+              password,
+            })
 
-    setIsSubmitting(false)
+      if (result.error) {
+        setError(result.error.message ?? 'Unable to authenticate')
+        return
+      }
 
-    if (result.error) {
-      setError(result.error.message ?? 'Unable to authenticate')
+      navigate('/workspace', { replace: true })
+    } catch {
+      setError('Unable to authenticate. Check your details and try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -59,34 +79,61 @@ export function AuthPanel() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl items-center px-6 py-12 lg:px-12">
-      <section className="grid w-full gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <div className="max-w-2xl space-y-7">
-          <p className="text-xs uppercase tracking-[0.4em] text-[var(--color-accent)]">
-            Auto Dubbing AI
-          </p>
-          <h1 className="font-serif text-5xl font-normal leading-[1.08] text-[var(--color-text)] sm:text-6xl">
-            Your dubbing jobs stay tied to your account.
-          </h1>
-          <p className="max-w-md text-sm leading-relaxed text-[var(--color-text-dim)]">
-            Sign in before uploading so every generated video, transcript, and status update stays private to you.
-          </p>
+    <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
+      <section className="mx-auto grid min-h-screen max-w-7xl gap-8 px-5 py-6 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
+        <div className="flex flex-col justify-between rounded-lg border border-(--color-border) bg-[linear-gradient(135deg,#ffffff_0%,#f3f8ef_100%)] p-5 md:p-7">
+          <div className="flex items-center justify-between gap-4">
+            <Link className="flex items-center gap-3" to="/">
+              <span className="flex size-9 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
+                <AudioWaveform className="size-5" />
+              </span>
+              <span className="font-serif text-2xl leading-none">DubStudio AI</span>
+            </Link>
+            <Link
+              className="inline-flex items-center gap-2 rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm font-semibold transition hover:border-(--color-text)"
+              to="/"
+            >
+              <ArrowLeft className="size-4" />
+              Home
+            </Link>
+          </div>
+
+          <div className="my-16 max-w-2xl lg:my-0">
+            <p className="font-mono text-xs font-semibold text-(--color-blue)">
+              Account access
+            </p>
+            <h1 className="mt-4 font-serif text-6xl leading-none md:text-7xl">
+              Keep each dubbing job tied to your studio.
+            </h1>
+            <p className="mt-6 max-w-lg text-lg leading-8 text-(--color-text-dim)">
+              Uploads, processing status, and download links stay private to your signed-in workspace.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {authHighlights.map((item) => (
+              <div className="rounded-md border border-(--color-border) bg-white p-3" key={item}>
+                <CheckCircle2 className="mb-3 size-4 text-emerald-600" />
+                <p className="text-sm font-semibold">{item}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <form
-          className="border border-[var(--color-border)] bg-[var(--color-surface)]/90 p-6"
+          className="self-center rounded-lg border border-(--color-text) bg-(--color-surface) p-5 shadow-[8px_8px_0_rgba(21,23,19,0.12)] md:p-6"
           onSubmit={handleSubmit}
         >
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--color-accent)]">
+              <p className="font-mono text-xs font-semibold text-(--color-blue)">
                 {copy.eyebrow}
               </p>
-              <h2 className="mt-3 font-serif text-3xl text-[var(--color-text)]">
+              <h2 className="mt-3 font-serif text-3xl text-(--color-text)">
                 {copy.title}
               </h2>
             </div>
-            <div className="flex size-10 items-center justify-center border border-[var(--color-border)] text-[var(--color-accent)]">
+            <div className="flex size-10 items-center justify-center rounded-md border border-(--color-border) bg-(--color-panel) text-(--color-blue)">
               <UserPlus className="size-4" />
             </div>
           </div>
@@ -94,13 +141,13 @@ export function AuthPanel() {
           <div className="space-y-4">
             {mode === 'sign-up' && (
               <label className="block">
-                <span className="mb-2 block text-xs uppercase tracking-wider text-[var(--color-text-dim)]">
+                <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                   Name
                 </span>
-                <span className="flex items-center gap-3 border-b border-[var(--color-border)] py-3 focus-within:border-[var(--color-accent)]">
-                  <User className="size-4 shrink-0 text-[var(--color-text-dim)]" />
+                <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+                  <User className="size-4 shrink-0 text-(--color-text-dim)" />
                   <input
-                    className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-dim)]"
+                    className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Your name"
@@ -111,13 +158,13 @@ export function AuthPanel() {
             )}
 
             <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-wider text-[var(--color-text-dim)]">
+              <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Email
               </span>
-              <span className="flex items-center gap-3 border-b border-[var(--color-border)] py-3 focus-within:border-[var(--color-accent)]">
-                <Mail className="size-4 shrink-0 text-[var(--color-text-dim)]" />
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+                <Mail className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
-                  className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-dim)]"
+                  className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -128,13 +175,13 @@ export function AuthPanel() {
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-wider text-[var(--color-text-dim)]">
+              <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Password
               </span>
-              <span className="flex items-center gap-3 border-b border-[var(--color-border)] py-3 focus-within:border-[var(--color-accent)]">
-                <Lock className="size-4 shrink-0 text-[var(--color-text-dim)]" />
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+                <Lock className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
-                  className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-dim)]"
+                  className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -146,10 +193,10 @@ export function AuthPanel() {
             </label>
           </div>
 
-          {error && <p className="mt-5 text-xs text-red-400">{error}</p>}
+          {error && <p className="mt-5 text-sm text-red-600">{error}</p>}
 
           <button
-            className="mt-8 flex w-full items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-sm font-medium uppercase tracking-wider text-black transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-(--color-text) bg-(--color-accent) px-4 py-3 text-sm font-semibold text-(--color-accent-text) transition hover:bg-(--color-accent-hover) disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting}
             type="submit"
           >
@@ -158,7 +205,7 @@ export function AuthPanel() {
           </button>
 
           <button
-            className="mt-4 w-full text-center text-xs uppercase tracking-wider text-[var(--color-text-dim)] transition hover:text-[var(--color-text)]"
+            className="mt-4 w-full rounded-md px-3 py-2 text-center text-sm font-semibold text-(--color-text-dim) transition hover:bg-(--color-panel) hover:text-(--color-text)"
             onClick={switchMode}
             type="button"
           >

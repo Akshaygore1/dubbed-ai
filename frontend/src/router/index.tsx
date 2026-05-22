@@ -1,6 +1,7 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/ui/app-shell'
-import { HomePage } from '@/pages/home-page'
+import { LandingPage } from '@/pages/landing-page'
+import { AuthRoute, WorkspaceRoute } from './route-gates'
 
 export const router = createBrowserRouter([
   {
@@ -9,7 +10,19 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: <LandingPage />,
+      },
+      {
+        path: 'auth',
+        element: <AuthRoute />,
+      },
+      {
+        path: 'workspace',
+        element: <WorkspaceRoute />,
+      },
+      {
+        path: '*',
+        element: <Navigate to="/" replace />,
       },
     ],
   },
