@@ -9,6 +9,18 @@ const getErrorMessage = (error: unknown) => {
   return String(error)
 }
 
+const MIN_TEMPO_FACTOR = 0.75
+const MAX_TEMPO_FACTOR = 1.35
+const TIMING_TOLERANCE_SECONDS = 0.02
+
+const clamp = (value: number, minimum: number, maximum: number) => {
+  return Math.min(maximum, Math.max(minimum, value))
+}
+
+const formatFilterNumber = (value: number) => {
+  return value.toFixed(6).replace(/\.?0+$/, '')
+}
+
 const runProcess = async (command: string, args: string[]) => {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(command, args)
@@ -54,9 +66,15 @@ export const trimAudioSample = async (
   inputPath: string,
   outputPath: string,
   durationSeconds = 12,
+  startTimeSeconds = 0,
 ) => {
-  await runProcess('ffmpeg', [
-    '-y',
+  const args = ['-y']
+
+  if (startTimeSeconds > 0) {
+    args.push('-ss', `${startTimeSeconds}`)
+  }
+
+  args.push(
     '-i',
     inputPath,
     '-t',
@@ -68,7 +86,9 @@ export const trimAudioSample = async (
     '-c:a',
     'pcm_s16le',
     outputPath,
-  ])
+  )
+
+  await runProcess('ffmpeg', args)
 }
 
 export const getMediaDuration = async (inputPath: string) => {
@@ -121,12 +141,18 @@ export const mixDubbedSegments = async (input: {
   segments: Array<{
     audioPath: string
     startTimeSeconds: number
+    targetDurationSeconds: number
   }>
 }) => {
   if (input.segments.length === 0) {
     throw new Error('Cannot mix dubbed audio without synthesized segments')
   }
 
+  if (!Number.isFinite(input.totalDurationSeconds) || input.totalDurationSeconds <= 0) {
+    throw new Error('Cannot mix dubbed audio without a positive source duration')
+  }
+
+  const totalDurationSeconds = formatFilterNumber(input.totalDurationSeconds)
   const args = [
     '-y',
     '-f',
@@ -140,13 +166,16 @@ export const mixDubbedSegments = async (input: {
   }
 
   const filters = [
-    `[0:a]atrim=0:${input.totalDurationSeconds},asetpts=N/SR/TB[base]`,
+    `[0:a]atrim=0:${totalDurationSeconds},asetpts=N/SR/TB[base]`,
   ]
 
   for (const [index, segment] of input.segments.entries()) {
     const delay = Math.max(0, Math.round(segment.startTimeSeconds * 1000))
     const inputIndex = index + 1
-    filters.push(`[${inputIndex}:a]adelay=${delay}|${delay}[seg${inputIndex}]`)
+    const targetDurationSeconds = formatFilterNumber(segment.targetDurationSeconds)
+    filters.push(
+      `[${inputIndex}:a]atrim=0:${targetDurationSeconds},asetpts=N/SR/TB,adelay=${delay}|${delay}[seg${inputIndex}]`,
+    )
   }
 
   const mixInputs = [
@@ -155,7 +184,7 @@ export const mixDubbedSegments = async (input: {
   ].join('')
 
   filters.push(
-    `${mixInputs}amix=inputs=${input.segments.length + 1}:duration=longest:normalize=0,atrim=0:${input.totalDurationSeconds}[out]`,
+    `${mixInputs}amix=inputs=${input.segments.length + 1}:duration=longest:dropout_transition=0:normalize=0,atrim=0:${totalDurationSeconds},asetpts=N/SR/TB[out]`,
   )
 
   args.push(
@@ -193,6 +222,75 @@ export const normalizeAudioForMix = async (inputPath: string, outputPath: string
     throw new Error(
       `Unable to normalize synthesized audio ${inputPath}: ${getErrorMessage(error)}`,
     )
+  }
+}
+
+export const prepareAudioClipForTimeline = async (input: {
+  inputPath: string
+  outputPath: string
+  targetDurationSeconds: number
+  minTempoFactor?: number
+  maxTempoFactor?: number
+}) => {
+  if (!Number.isFinite(input.targetDurationSeconds) || input.targetDurationSeconds <= 0) {
+    throw new Error('Cannot prepare a dubbed segment without a positive target duration')
+  }
+
+  const rawDurationSeconds = await getMediaDuration(input.inputPath)
+  const minTempoFactor = input.minTempoFactor ?? MIN_TEMPO_FACTOR
+  const maxTempoFactor = input.maxTempoFactor ?? MAX_TEMPO_FACTOR
+
+  if (minTempoFactor <= 0 || maxTempoFactor <= 0 || minTempoFactor > maxTempoFactor) {
+    throw new Error('Invalid audio tempo bounds')
+  }
+
+  const tempoFactor = clamp(
+    rawDurationSeconds / input.targetDurationSeconds,
+    minTempoFactor,
+    maxTempoFactor,
+  )
+  const estimatedDurationSeconds = rawDurationSeconds / tempoFactor
+  const targetDurationSeconds = formatFilterNumber(input.targetDurationSeconds)
+  const wasTrimmed =
+    estimatedDurationSeconds > input.targetDurationSeconds + TIMING_TOLERANCE_SECONDS
+  const silencePaddingSeconds = Math.max(
+    0,
+    input.targetDurationSeconds - Math.min(estimatedDurationSeconds, input.targetDurationSeconds),
+  )
+
+  try {
+    await runProcess('ffmpeg', [
+      '-y',
+      '-i',
+      input.inputPath,
+      '-af',
+      [
+        `atempo=${formatFilterNumber(tempoFactor)}`,
+        `atrim=0:${targetDurationSeconds}`,
+        'apad',
+        `atrim=0:${targetDurationSeconds}`,
+        'asetpts=N/SR/TB',
+      ].join(','),
+      '-ac',
+      '2',
+      '-ar',
+      '44100',
+      '-c:a',
+      'pcm_s16le',
+      input.outputPath,
+    ])
+  } catch (error) {
+    throw new Error(
+      `Unable to prepare synthesized audio ${input.inputPath}: ${getErrorMessage(error)}`,
+    )
+  }
+
+  return {
+    rawDurationSeconds,
+    tempoFactor,
+    fittedDurationSeconds: await getMediaDuration(input.outputPath),
+    silencePaddingSeconds,
+    wasTrimmed,
   }
 }
 

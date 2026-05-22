@@ -4,6 +4,7 @@ import {
   getMediaDuration,
   mixDubbedSegments,
   normalizeAudioForMix,
+  prepareAudioClipForTimeline,
 } from "../../../lib/audio.js";
 import { logger } from "../../../lib/logger.js";
 import { synthesizeVoiceCloneSpeech } from "../../../lib/providers/smallest.js";
@@ -11,12 +12,15 @@ import {
   createDubbedAudioObjectKey,
   uploadAudioToR2,
 } from "../../../lib/r2.js";
-import type { TranscriptSegment } from "../types.js";
+import { calculateTtsSpeed } from "../synthesis-timing.js";
+import type { PreparedDubSegment, TranscriptSegment } from "../types.js";
 
 type SynthesizeDubbedAudioTaskInput = {
   jobId: string;
   sourceAudioPath: string;
+  sourceAudioDurationSeconds?: number;
   voiceId: string;
+  targetLanguage: string;
   segments: TranscriptSegment[];
   tempDir: string;
 };
@@ -29,26 +33,30 @@ type SynthesizeDubbedAudioTaskResult = {
 export const synthesizeDubbedAudio = async ({
   jobId,
   sourceAudioPath,
+  sourceAudioDurationSeconds,
   voiceId,
+  targetLanguage,
   segments,
   tempDir,
 }: SynthesizeDubbedAudioTaskInput): Promise<SynthesizeDubbedAudioTaskResult> => {
-  const activeSegments = segments.filter(
-    (segment) =>
-      typeof segment.translatedText === "string" &&
-      segment.translatedText.trim().length > 0,
-  );
+  const activeSegments = segments
+    .map((segment) => ({
+      segment,
+      translatedText: segment.translatedText?.trim() ?? "",
+      targetDurationSeconds: segment.endTimeSeconds - segment.startTimeSeconds,
+    }))
+    .filter(
+      (entry) =>
+        entry.translatedText.length > 0 && entry.targetDurationSeconds > 0,
+    );
 
   if (activeSegments.length === 0) {
     throw new Error("No translated segments were available for dubbing synthesis");
   }
 
-  const synthesizedSegments: Array<{
-    audioPath: string;
-    startTimeSeconds: number;
-  }> = [];
+  const preparedSegments: PreparedDubSegment[] = [];
 
-  for (const segment of activeSegments) {
+  for (const { segment, translatedText, targetDurationSeconds } of activeSegments) {
     const rawAudioPathStem = path.join(
       tempDir,
       `${jobId}.segment-${segment.index}.provider`,
@@ -57,10 +65,15 @@ export const synthesizeDubbedAudio = async ({
       tempDir,
       `${jobId}.segment-${segment.index}.wav`,
     );
+    const fittedAudioPath = path.join(
+      tempDir,
+      `${jobId}.segment-${segment.index}.fitted.wav`,
+    );
 
     const synthesizedAudio = await synthesizeVoiceCloneSpeech({
-      text: segment.translatedText!,
+      text: translatedText,
       voiceId,
+      languageCode: targetLanguage,
       outputPathStem: rawAudioPathStem,
     });
 
@@ -72,10 +85,66 @@ export const synthesizeDubbedAudio = async ({
     });
 
     try {
-      await normalizeAudioForMix(
+      const rawProviderDurationSeconds = await getMediaDuration(
         synthesizedAudio.outputPath,
+      );
+      const ttsSpeed = calculateTtsSpeed({
+        rawDurationSeconds: rawProviderDurationSeconds,
+        targetDurationSeconds,
+      });
+      const fittedSynthesizedAudio =
+        ttsSpeed === 1
+          ? synthesizedAudio
+          : await synthesizeVoiceCloneSpeech({
+              text: translatedText,
+              voiceId,
+              languageCode: targetLanguage,
+              speed: ttsSpeed,
+              outputPathStem: rawAudioPathStem,
+            });
+
+      await normalizeAudioForMix(
+        fittedSynthesizedAudio.outputPath,
         normalizedAudioPath,
       );
+
+      const preparedAudio = await prepareAudioClipForTimeline({
+        inputPath: normalizedAudioPath,
+        outputPath: fittedAudioPath,
+        targetDurationSeconds,
+        minTempoFactor: 0.9,
+        maxTempoFactor: 1.12,
+      });
+
+      preparedSegments.push({
+        segmentIndex: segment.index,
+        audioPath: fittedAudioPath,
+        startTimeSeconds: segment.startTimeSeconds,
+        endTimeSeconds: segment.endTimeSeconds,
+        targetDurationSeconds,
+        rawDurationSeconds: preparedAudio.rawDurationSeconds,
+        providerRawDurationSeconds: rawProviderDurationSeconds,
+        ttsSpeed,
+        tempoFactor: preparedAudio.tempoFactor,
+        fittedDurationSeconds: preparedAudio.fittedDurationSeconds,
+        silencePaddingSeconds: preparedAudio.silencePaddingSeconds,
+        wasTrimmed: preparedAudio.wasTrimmed,
+      });
+
+      logger.info("dubbing_job.segment_audio_prepared", {
+        jobId,
+        segmentIndex: segment.index,
+        startTimeSeconds: segment.startTimeSeconds,
+        endTimeSeconds: segment.endTimeSeconds,
+        targetDurationSeconds,
+        rawDurationSeconds: preparedAudio.rawDurationSeconds,
+        providerRawDurationSeconds: rawProviderDurationSeconds,
+        ttsSpeed,
+        tempoFactor: preparedAudio.tempoFactor,
+        fittedDurationSeconds: preparedAudio.fittedDurationSeconds,
+        silencePaddingSeconds: preparedAudio.silencePaddingSeconds,
+        wasTrimmed: preparedAudio.wasTrimmed,
+      });
     } catch (error) {
       logger.error("dubbing_job.segment_audio_invalid", error, {
         jobId,
@@ -86,21 +155,17 @@ export const synthesizeDubbedAudio = async ({
       });
       throw error;
     }
-
-    synthesizedSegments.push({
-      audioPath: normalizedAudioPath,
-      startTimeSeconds: segment.startTimeSeconds,
-    });
   }
 
   const dubbedAudioPath = path.join(tempDir, `${jobId}.dubbed.m4a`);
   const dubbedAudioKey = createDubbedAudioObjectKey(jobId);
-  const totalDurationSeconds = await getMediaDuration(sourceAudioPath);
+  const totalDurationSeconds =
+    sourceAudioDurationSeconds ?? (await getMediaDuration(sourceAudioPath));
 
   await mixDubbedSegments({
     outputPath: dubbedAudioPath,
     totalDurationSeconds,
-    segments: synthesizedSegments,
+    segments: preparedSegments,
   });
 
   const dubbedAudioBuffer = await readFile(dubbedAudioPath);

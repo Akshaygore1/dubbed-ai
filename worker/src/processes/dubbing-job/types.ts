@@ -21,7 +21,13 @@ export type PreparedDubSegment = {
   startTimeSeconds: number;
   endTimeSeconds: number;
   targetDurationSeconds: number;
-  actualDurationSeconds: number;
+  providerRawDurationSeconds: number;
+  ttsSpeed: number;
+  rawDurationSeconds: number;
+  tempoFactor: number;
+  fittedDurationSeconds: number;
+  silencePaddingSeconds: number;
+  wasTrimmed: boolean;
 };
 
 export type TranscriptionResult = {

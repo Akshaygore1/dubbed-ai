@@ -1,10 +1,17 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { getMediaDuration } from "../../lib/audio.js";
 import { logger } from "../../lib/logger.js";
+import { getUserSafeDubbingErrorMessage } from "./failures.js";
+import {
+  assertDifferentDubbingLanguages,
+  resolveSourceLanguage,
+} from "./languages.js";
 import { cloneVoice } from "./tasks/clone-voice.js";
 import { extractAudio } from "./tasks/extract-audio.js";
 import { muxDubbedVideo } from "./tasks/mux-dubbed-video.js";
+import { segmentTranscriptSentences } from "./tasks/segment-transcript-sentences.js";
 import { synthesizeDubbedAudio } from "./tasks/synthesize-dubbed-audio.js";
 import { transcribeAudio } from "./tasks/transcribe-audio.js";
 import { translateTranscript } from "./tasks/translate-transcript.js";
@@ -84,11 +91,47 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
       sourceAudioPath,
     });
     logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
-    const sourceLanguage = transcription.detectedLanguageCode ?? job.sourceLanguage;
+    const sourceLanguage = resolveSourceLanguage({
+      requestedSourceLanguage: job.sourceLanguage,
+      detectedSourceLanguage: transcription.detectedLanguageCode,
+    });
+
+    assertDifferentDubbingLanguages({
+      sourceLanguage,
+      targetLanguage: job.targetLanguage,
+    });
+
+    currentStep = "measure_source_audio";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const sourceAudioDurationSeconds = await getMediaDuration(sourceAudioPath);
+    logger.info("dubbing_job.step.completed", {
+      jobId,
+      step: currentStep,
+      sourceAudioDurationSeconds,
+    });
+
+    currentStep = "segment_transcript_sentences";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const sentenceSegments = segmentTranscriptSentences({
+      segments: transcription.segments,
+      languageCode: sourceLanguage,
+      fallbackDurationSeconds: sourceAudioDurationSeconds,
+    });
+
+    if (sentenceSegments.length === 0) {
+      throw new Error("Transcription did not produce any sentence segments");
+    }
+
+    logger.info("dubbing_job.step.completed", {
+      jobId,
+      step: currentStep,
+      inputSegmentCount: transcription.segments.length,
+      sentenceSegmentCount: sentenceSegments.length,
+    });
 
     await updateDubbingJob(jobId, {
       transcriptionLanguage: sourceLanguage,
-      transcriptJson: JSON.stringify(transcription.segments),
+      transcriptJson: JSON.stringify(sentenceSegments),
     });
 
     currentStep = "clone_voice";
@@ -97,6 +140,7 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
       jobId,
       sourceAudioPath,
       sourceLanguage,
+      segments: sentenceSegments,
       tempDir,
     });
     logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
@@ -108,7 +152,7 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
     currentStep = "translate_transcript";
     logger.info("dubbing_job.step.started", { jobId, step: currentStep });
     const translatedSegments = await translateTranscript({
-      segments: transcription.segments,
+      segments: sentenceSegments,
       sourceLanguage,
       targetLanguage: job.targetLanguage,
     });
@@ -123,7 +167,9 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
     const { dubbedAudioPath, dubbedAudioKey } = await synthesizeDubbedAudio({
       jobId,
       sourceAudioPath,
+      sourceAudioDurationSeconds,
       voiceId,
+      targetLanguage: job.targetLanguage,
       segments: translatedSegments,
       tempDir,
     });
@@ -153,10 +199,7 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
 
     logger.info("dubbing_job.completed", { jobId });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Worker failed to process dubbing job";
+    const message = getUserSafeDubbingErrorMessage(error);
 
     logger.error("dubbing_job.failed", error, {
       jobId,
