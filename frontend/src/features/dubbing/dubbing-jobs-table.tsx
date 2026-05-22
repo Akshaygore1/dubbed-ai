@@ -1,6 +1,7 @@
 import { AlertCircle, Download, LoaderCircle } from 'lucide-react'
 import { type MouseEvent } from 'react'
 import { useSnackbar } from '@/app/providers/snackbar-context'
+import { getDubbingLanguageName } from './dubbing-languages'
 import { getDubbingJobDownloadUrl, useDubbingJobs } from './use-dubbing-jobs'
 
 const statusClasses = {
@@ -117,8 +118,14 @@ export function DubbingJobsTable() {
                         {job.status}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-[var(--color-text-dim)]">{job.sourceLanguage}</td>
-                    <td className="px-4 py-4 text-[var(--color-text-dim)]">{job.targetLanguage}</td>
+                    <td className="px-4 py-4 text-[var(--color-text-dim)]">
+                      {job.transcriptionLanguage
+                        ? getDubbingLanguageName(job.transcriptionLanguage)
+                        : getDubbingLanguageName(job.sourceLanguage)}
+                    </td>
+                    <td className="px-4 py-4 text-[var(--color-text-dim)]">
+                      {getDubbingLanguageName(job.targetLanguage)}
+                    </td>
                     <td className="px-4 py-4 text-[var(--color-text-dim)]">{formatDate(job.createdAt)}</td>
                     <td className="max-w-xs px-4 py-4 text-[var(--color-text-dim)]">
                       {job.errorMessage ?? '—'}

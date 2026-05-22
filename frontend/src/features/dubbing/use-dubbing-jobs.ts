@@ -11,6 +11,7 @@ export type DubbingJob = {
   dubbedVideoKey: string | null
   sourceLanguage: string
   targetLanguage: string
+  transcriptionLanguage: string | null
   status: 'pending' | 'processing' | 'completed' | 'failed'
   dubbedVideoUrl: string | null
   errorMessage: string | null

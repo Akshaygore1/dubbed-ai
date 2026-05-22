@@ -1,9 +1,14 @@
 import { Film, LoaderCircle, UploadCloud, X } from 'lucide-react'
 import { useCallback, useId, useState } from 'react'
-import type { SubmitHandler } from 'react-hook-form'
+import { Controller, type SubmitHandler } from 'react-hook-form'
 import { useSnackbar } from '@/app/providers/snackbar-context'
+import { Select, SelectItem } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { LANGUAGES, type DubbingFormData } from './dubbing-schema'
+import {
+  AUTO_SOURCE_LANGUAGE,
+  LANGUAGES,
+  type DubbingFormData,
+} from './dubbing-schema'
 import { useDubbingForm } from './use-dubbing-form'
 
 type DubbingFormProps = {
@@ -19,7 +24,7 @@ export function DubbingForm({ isEmptyState = false }: DubbingFormProps) {
 
   const { form, mutation } = useDubbingForm()
   const {
-    register,
+    control,
     handleSubmit,
     formState: { errors },
   } = form
@@ -192,20 +197,27 @@ export function DubbingForm({ isEmptyState = false }: DubbingFormProps) {
           >
             Source Language
           </label>
-          <select
-            id="sourceLanguage"
-            className={`w-full border border-[var(--color-border)] bg-black/20 px-3 py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
-              errors.sourceLanguage ? 'border-red-500' : ''
-            }`}
-            {...register('sourceLanguage')}
-          >
-            <option value="" className="bg-[var(--color-surface)]">Source</option>
-            {LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code} className="bg-[var(--color-surface)]">
-                {lang.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="sourceLanguage"
+            render={({ field }) => (
+              <Select
+                id="sourceLanguage"
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder="Source"
+                error={Boolean(errors.sourceLanguage)}
+                disabled={mutation.isPending}
+              >
+                <SelectItem value={AUTO_SOURCE_LANGUAGE}>Auto-detect</SelectItem>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+          />
         </div>
 
         <div>
@@ -215,20 +227,26 @@ export function DubbingForm({ isEmptyState = false }: DubbingFormProps) {
           >
             Target Language
           </label>
-          <select
-            id="targetLanguage"
-            className={`w-full border border-[var(--color-border)] bg-black/20 px-3 py-3 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] ${
-              errors.targetLanguage ? 'border-red-500' : ''
-            }`}
-            {...register('targetLanguage')}
-          >
-            <option value="" className="bg-[var(--color-surface)]">Target</option>
-            {LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code} className="bg-[var(--color-surface)]">
-                {lang.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            control={control}
+            name="targetLanguage"
+            render={({ field }) => (
+              <Select
+                id="targetLanguage"
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder="Target"
+                error={Boolean(errors.targetLanguage)}
+                disabled={mutation.isPending}
+              >
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+          />
         </div>
       </div>
 
