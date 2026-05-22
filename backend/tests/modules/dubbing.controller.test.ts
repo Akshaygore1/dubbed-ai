@@ -140,6 +140,7 @@ const mockSelectList = (rows: unknown[]) => {
 
 describe('dubbing controller', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     mocks.createVideoObjectKey.mockReturnValue('videos/generated-input.mp4')
     mocks.getStoredVideoUrl.mockReturnValue('r2://videos/generated-input.mp4')
     mocks.getSignedObjectDownloadUrl.mockResolvedValue('https://cdn.test/dubbed/output.mp4?download=1')
@@ -223,6 +224,42 @@ describe('dubbing controller', () => {
       })
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
       expect(update.where).toHaveBeenCalled()
+    })
+
+    it('rejects unsupported languages before upload and queueing', async () => {
+      const req = createVideoRequest()
+      req.body = {
+        sourceLanguage: 'en-IN',
+        targetLanguage: 'ur-IN',
+      }
+
+      await expect(createDubbingJob(req, createResponse())).rejects.toThrow()
+
+      expect(mocks.uploadVideoToR2).not.toHaveBeenCalled()
+      expect(mocks.publishDubbingJob).not.toHaveBeenCalled()
+      expect(mocks.db.insert).not.toHaveBeenCalled()
+    })
+
+    it('defaults a missing source language to auto', async () => {
+      const req = createVideoRequest()
+      req.body = {
+        targetLanguage: 'hi-IN',
+      }
+      const { values } = mockInsertReturning([
+        {
+          ...baseJob,
+          sourceLanguage: 'auto',
+        },
+      ])
+
+      await createDubbingJob(req, createResponse())
+
+      expect(values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceLanguage: 'auto',
+          targetLanguage: 'hi-IN',
+        }),
+      )
     })
   })
 
