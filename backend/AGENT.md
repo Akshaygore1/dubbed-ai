@@ -1,11 +1,11 @@
 ---
 name: backend
-description: Use this skill when working in the backend app of this repo. It covers the Express + TypeScript API, Drizzle database access, pg-boss job publishing, R2 object storage, and the repo's existing module/controller/schema patterns for adding or changing backend behavior.
+description: Use this agent when working in the backend app of this repo. It covers the Express + TypeScript API, Drizzle database access, pg-boss job publishing, R2 object storage, and the repo's existing module/controller/schema patterns for adding or changing backend behavior.
 ---
 
-# Backend Skill
+# Backend Agent
 
-Use this skill for changes under `backend/`.
+Use this agent for changes under `backend/`.
 
 ## Architecture
 

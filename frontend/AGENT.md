@@ -1,11 +1,11 @@
 ---
 name: frontend
-description: Use this skill when working in the frontend app of this repo. It covers the Vite + React + TypeScript app, route and layout structure, feature-based form flows, React Query mutations, shared axios API access, Zustand state, and the current Tailwind-driven UI style.
+description: Use this agent when working in the frontend app of this repo. It covers the Vite + React + TypeScript app, route and layout structure, feature-based form flows, React Query mutations, shared axios API access, Zustand state, and the current Tailwind-driven UI style.
 ---
 
-# Frontend Skill
+# Frontend Agent
 
-Use this skill for changes under `frontend/`.
+Use this agent for changes under `frontend/`.
 
 ## Architecture
 

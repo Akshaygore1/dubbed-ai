@@ -1,11 +1,11 @@
 ---
 name: worker
-description: Use this skill when working in the worker app of this repo. It covers the TypeScript pg-boss dubbing worker, Drizzle/PostgreSQL persistence, Cloudflare R2 media artifacts, ffmpeg/ffprobe processing, Sarvam speech-to-text and translation, Smallest voice cloning and TTS, environment validation, and the orchestration/task split.
+description: Use this agent when working in the worker app of this repo. It covers the TypeScript pg-boss dubbing worker, Drizzle/PostgreSQL persistence, Cloudflare R2 media artifacts, ffmpeg/ffprobe processing, Sarvam speech-to-text and translation, Smallest voice cloning and TTS, environment validation, and the orchestration/task split.
 ---
 
-# Worker Skill
+# Worker Agent
 
-Use this skill for changes under `worker/`.
+Use this agent for changes under `worker/`.
 
 ## Architecture
 
