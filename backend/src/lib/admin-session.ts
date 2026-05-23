@@ -110,7 +110,7 @@ export const setAdminSessionCookie = (
 ) => {
   res.cookie(adminSessionCookieName, session.token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: env.NODE_ENV === 'production',
     expires: session.expiresAt,
     path: '/',
@@ -120,7 +120,7 @@ export const setAdminSessionCookie = (
 export const clearAdminSessionCookie = (res: Response) => {
   res.clearCookie(adminSessionCookieName, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: env.NODE_ENV === 'production',
     path: '/',
   })
