@@ -1,7 +1,13 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/ui/app-shell'
 import { LandingPage } from '@/pages/landing-page'
-import { AuthRoute, WorkspaceRoute } from './route-gates'
+import {
+  AdminLoginRoute,
+  AdminUsersRoute,
+  AuthRoute,
+  PendingRoute,
+  WorkspaceRoute,
+} from './route-gates'
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +25,18 @@ export const router = createBrowserRouter([
       {
         path: 'workspace',
         element: <WorkspaceRoute />,
+      },
+      {
+        path: 'pending',
+        element: <PendingRoute />,
+      },
+      {
+        path: 'admin/login',
+        element: <AdminLoginRoute />,
+      },
+      {
+        path: 'admin/users',
+        element: <AdminUsersRoute />,
       },
       {
         path: '*',

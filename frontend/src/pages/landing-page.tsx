@@ -13,70 +13,82 @@ import {
   Play,
   UploadCloud,
   UserRound,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 const workflowSteps = [
   {
-    title: 'Upload video',
-    copy: 'Drop the source file and keep the original cut intact.',
+    title: "Upload video",
+    copy: "Drop the source file and keep the original cut intact.",
     icon: UploadCloud,
   },
   {
-    title: 'Choose language',
-    copy: 'Pick the target voice market and keep the source auto-detected.',
+    title: "Choose language",
+    copy: "Pick the target voice market and keep the source auto-detected.",
     icon: Languages,
   },
   {
-    title: 'Process',
-    copy: 'Transcription, translation, voice rendering, and sync run as one job.',
+    title: "Process",
+    copy: "Transcription, translation, voice rendering, and sync run as one job.",
     icon: Cpu,
   },
   {
-    title: 'Download',
-    copy: 'Pull the finished dubbed video from your private workspace.',
+    title: "Download",
+    copy: "Pull the finished dubbed video from your private workspace.",
     icon: Download,
   },
-] as const
+] as const;
 
 const useCases = [
   {
-    title: 'Creators',
-    copy: 'Republish tutorials, explainers, and short-form edits for regional audiences.',
+    title: "Creators",
+    copy: "Republish tutorials, explainers, and short-form edits for regional audiences.",
     icon: UserRound,
   },
   {
-    title: 'Educators',
-    copy: 'Localize lessons and training videos without rebuilding the course library.',
+    title: "Educators",
+    copy: "Localize lessons and training videos without rebuilding the course library.",
     icon: GraduationCap,
   },
   {
-    title: 'Agencies',
-    copy: 'Run small client batches with clear job status and authenticated downloads.',
+    title: "Agencies",
+    copy: "Run small client batches with clear job status and authenticated downloads.",
     icon: Building2,
   },
-] as const
+] as const;
 
 const pricingPlans = [
   {
-    name: 'Free',
-    price: '$0',
-    detail: 'For first uploads and workflow trials.',
-    features: ['Limited monthly minutes', 'Standard processing queue', 'Private job history'],
+    name: "Free",
+    price: "$0",
+    detail: "For first uploads and workflow trials.",
+    features: [
+      "Limited monthly minutes",
+      "Standard processing queue",
+      "Private job history",
+    ],
   },
   {
-    name: 'Creator',
-    price: '$19',
-    detail: 'For regular channels and course builders.',
-    features: ['Higher dubbing minutes', 'Priority queue', 'Download-ready workspace'],
+    name: "Creator",
+    price: "$19",
+    detail: "For regular channels and course builders.",
+    features: [
+      "Higher dubbing minutes",
+      "Priority queue",
+      "Download-ready workspace",
+    ],
   },
   {
-    name: 'Agency',
-    price: '$79',
-    detail: 'For teams managing recurring localization work.',
-    features: ['Shared production view', 'Batch-ready capacity', 'Client delivery records'],
+    name: "Agency",
+    price: "$79",
+    detail: "For teams managing recurring localization work.",
+    features: [
+      "Shared production view",
+      "Batch-ready capacity",
+      "Client delivery records",
+    ],
   },
-] as const
+] as const;
 
 export function LandingPage() {
   return (
@@ -89,13 +101,21 @@ export function LandingPage() {
             <span className="flex size-9 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
               <AudioWaveform className="size-5" />
             </span>
-            <span className="font-serif text-2xl leading-none">DubStudio AI</span>
+            <span className="font-serif text-2xl leading-none">
+              DubStudio AI
+            </span>
           </Link>
           <div className="hidden items-center gap-7 text-sm text-(--color-text-dim) md:flex">
-            <a className="transition hover:text-(--color-text)" href="#workflow">
+            <a
+              className="transition hover:text-(--color-text)"
+              href="#workflow"
+            >
               Workflow
             </a>
-            <a className="transition hover:text-(--color-text)" href="#use-cases">
+            <a
+              className="transition hover:text-(--color-text)"
+              href="#use-cases"
+            >
               Use cases
             </a>
             <a className="transition hover:text-(--color-text)" href="#pricing">
@@ -116,13 +136,23 @@ export function LandingPage() {
             <p className="reveal-up font-mono text-xs font-semibold text-(--color-blue)">
               Self-serve AI dubbing for growing video libraries
             </p>
-            <h1 className="reveal-up mt-5 font-serif text-5xl leading-none text-(--color-text) sm:text-7xl lg:text-8xl" style={{ animationDelay: '70ms' }}>
+            <h1
+              className="reveal-up mt-5 font-serif text-5xl leading-none text-(--color-text) sm:text-7xl lg:text-8xl"
+              style={{ animationDelay: "70ms" }}
+            >
               DubStudio AI
             </h1>
-            <p className="reveal-up mt-5 max-w-xl text-base leading-7 text-(--color-text-dim) sm:text-lg sm:leading-8" style={{ animationDelay: '140ms' }}>
-              Upload a video, choose a target language, and get a dubbed file back from a clean private workspace.
+            <p
+              className="reveal-up mt-5 max-w-xl text-base leading-7 text-(--color-text-dim) sm:text-lg sm:leading-8"
+              style={{ animationDelay: "140ms" }}
+            >
+              Upload a video, choose a target language, and get a dubbed file
+              back from a clean private workspace.
             </p>
-            <div className="reveal-up mt-8 flex flex-col gap-3 sm:flex-row" style={{ animationDelay: '210ms' }}>
+            <div
+              className="reveal-up mt-8 flex flex-col gap-3 sm:flex-row"
+              style={{ animationDelay: "210ms" }}
+            >
               <Link
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-(--color-text) bg-(--color-accent) px-5 py-3 text-sm font-semibold text-(--color-accent-text) shadow-[5px_5px_0_var(--color-text)] transition hover:-translate-y-0.5 hover:shadow-[7px_7px_0_var(--color-text)]"
                 to="/auth"
@@ -143,7 +173,10 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="workflow" className="mx-auto max-w-7xl px-5 py-20 md:px-8 lg:px-10">
+      <section
+        id="workflow"
+        className="mx-auto max-w-7xl px-5 py-20 md:px-8 lg:px-10"
+      >
         <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:items-start">
           <div>
             <p className="font-mono text-xs font-semibold text-(--color-blue)">
@@ -155,11 +188,11 @@ export function LandingPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {workflowSteps.map((step, index) => {
-              const Icon = step.icon
+              const Icon = step.icon;
 
               return (
                 <article
-                  className="rounded-lg border border-(--color-border) bg-(--color-surface) p-5 transition hover:-translate-y-1 hover:border-(--color-text) hover:shadow-[6px_6px_0_rgba(21,23,19,0.1)]"
+                  className="rounded-lg border border-(--color-border) bg-(--color-surface) p-5 shadow-[6px_6px_0_rgba(21,23,19,0.1)]"
                   key={step.title}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -173,13 +206,16 @@ export function LandingPage() {
                     {step.copy}
                   </p>
                 </article>
-              )
+              );
             })}
           </div>
         </div>
       </section>
 
-      <section id="use-cases" className="border-y border-(--color-border) bg-white/72">
+      <section
+        id="use-cases"
+        className="border-y border-(--color-border) bg-white/72"
+      >
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-20 md:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:px-10">
           <div>
             <p className="font-mono text-xs font-semibold text-(--color-blue)">
@@ -191,7 +227,7 @@ export function LandingPage() {
           </div>
           <div className="grid gap-3">
             {useCases.map((useCase) => {
-              const Icon = useCase.icon
+              const Icon = useCase.icon;
 
               return (
                 <article
@@ -208,13 +244,16 @@ export function LandingPage() {
                     </p>
                   </div>
                 </article>
-              )
+              );
             })}
           </div>
         </div>
       </section>
 
-      <section id="pricing" className="mx-auto max-w-7xl px-5 py-20 md:px-8 lg:px-10">
+      <section
+        id="pricing"
+        className="mx-auto max-w-7xl px-5 py-20 md:px-8 lg:px-10"
+      >
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="font-mono text-xs font-semibold text-(--color-blue)">
@@ -225,19 +264,20 @@ export function LandingPage() {
             </h2>
           </div>
           <p className="max-w-sm text-sm leading-6 text-(--color-text-dim)">
-            Plan cards are presentation-only in this version. Account creation opens the current workspace.
+            Plan cards are presentation-only in this version. New accounts
+            require admin approval before the workspace unlocks.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           {pricingPlans.map((plan, index) => (
             <article
-              className="rounded-lg border border-(--color-border) bg-(--color-surface) p-6 transition hover:-translate-y-1 hover:border-(--color-text)"
+              className="flex h-full flex-col rounded-lg border border-(--color-border) bg-(--color-surface) p-6 transition"
               key={plan.name}
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-2xl font-semibold">{plan.name}</h3>
-                  <p className="mt-2 text-sm leading-6 text-(--color-text-dim)">
+                  <p className="mt-2 min-h-16 text-sm leading-6 text-(--color-text-dim)">
                     {plan.detail}
                   </p>
                 </div>
@@ -253,9 +293,12 @@ export function LandingPage() {
                   /mo
                 </span>
               </p>
-              <ul className="mt-7 space-y-3">
+              <ul className="mt-7 flex-1 space-y-3">
                 {plan.features.map((feature) => (
-                  <li className="flex items-start gap-3 text-sm text-(--color-text-dim)" key={feature}>
+                  <li
+                    className="flex items-start gap-3 text-sm text-(--color-text-dim)"
+                    key={feature}
+                  >
                     <Check className="mt-0.5 size-4 shrink-0 text-(--color-blue)" />
                     <span>{feature}</span>
                   </li>
@@ -291,14 +334,17 @@ export function LandingPage() {
         </div>
       </section>
     </main>
-  )
+  );
 }
 
 function StudioWorkflowVisual() {
-  const meterHeights = ['38%', '64%', '46%', '86%', '55%', '72%', '42%', '68%']
+  const meterHeights = ["38%", "64%", "46%", "86%", "55%", "72%", "42%", "68%"];
 
   return (
-    <div className="reveal-up relative h-56 overflow-hidden rounded-lg border border-(--color-text) bg-(--color-surface) p-4 shadow-[10px_10px_0_rgba(21,23,19,0.12)] sm:h-72 lg:h-auto lg:min-h-[520px]" style={{ animationDelay: '180ms' }}>
+    <div
+      className="reveal-up relative h-56 overflow-hidden rounded-lg border border-(--color-text) bg-(--color-surface) p-4 shadow-[10px_10px_0_rgba(21,23,19,0.12)] sm:h-72 lg:h-auto lg:min-h-[520px]"
+      style={{ animationDelay: "180ms" }}
+    >
       <div className="mb-4 flex items-center justify-between border-b border-(--color-border) pb-4">
         <div className="flex items-center gap-2">
           <span className="size-3 rounded-sm bg-(--color-coral)" />
@@ -368,7 +414,9 @@ function StudioWorkflowVisual() {
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Mic2 className="size-4 text-(--color-blue)" />
-                <span className="font-mono text-xs font-semibold">voice render</span>
+                <span className="font-mono text-xs font-semibold">
+                  voice render
+                </span>
               </div>
               <CheckCircle2 className="size-4 text-emerald-600" />
             </div>
@@ -389,7 +437,9 @@ function StudioWorkflowVisual() {
           <div className="rounded-md border border-(--color-border) bg-(--color-bg) p-4">
             <div className="mb-4 flex items-center gap-2">
               <Captions className="size-4 text-(--color-blue)" />
-              <span className="font-mono text-xs font-semibold">transcript</span>
+              <span className="font-mono text-xs font-semibold">
+                transcript
+              </span>
             </div>
             <div className="space-y-3">
               <p className="rounded-md bg-white p-3 text-sm leading-6 text-(--color-text-dim)">
@@ -406,13 +456,17 @@ function StudioWorkflowVisual() {
 
           <div className="rounded-md border border-(--color-text) bg-(--color-accent) p-4 text-(--color-accent-text)">
             <div className="flex items-center justify-between gap-4">
-              <span className="font-mono text-xs font-semibold">current job</span>
+              <span className="font-mono text-xs font-semibold">
+                current job
+              </span>
               <span className="font-mono text-xs">processing</span>
             </div>
-            <p className="mt-3 text-2xl font-semibold">creator-launch-video.mp4</p>
+            <p className="mt-3 text-2xl font-semibold">
+              creator-launch-video.mp4
+            </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

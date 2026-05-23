@@ -1,54 +1,51 @@
 import {
   ArrowLeft,
   AudioWaveform,
-  CheckCircle2,
   LoaderCircle,
   Lock,
   Mail,
   User,
   UserPlus,
-} from 'lucide-react'
-import { type FormEvent, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { authClient } from '@/lib/auth-client'
+} from "lucide-react";
+import { type FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { authClient } from "@/lib/auth-client";
 
-type AuthMode = 'sign-in' | 'sign-up'
+type AuthMode = "sign-in" | "sign-up";
 
 const authCopy = {
-  'sign-in': {
-    eyebrow: 'Private studio',
-    title: 'Sign in to DubStudio.',
-    action: 'Sign in',
-    alternate: 'Create an account',
+  "sign-in": {
+    eyebrow: "Private studio",
+    title: "Sign in to DubStudio.",
+    action: "Sign in",
+    alternate: "Create an account",
   },
-  'sign-up': {
-    eyebrow: 'New studio',
-    title: 'Create your workspace.',
-    action: 'Create account',
-    alternate: 'Use an existing account',
+  "sign-up": {
+    eyebrow: "New studio",
+    title: "Create your workspace.",
+    action: "Create account",
+    alternate: "Use an existing account",
   },
-} as const
-
-const authHighlights = ['Private uploads', 'Live job status', 'Signed downloads']
+} as const;
 
 export function AuthPanel() {
-  const navigate = useNavigate()
-  const [mode, setMode] = useState<AuthMode>('sign-in')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const copy = authCopy[mode]
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const copy = authCopy[mode];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
 
     try {
       const result =
-        mode === 'sign-in'
+        mode === "sign-in"
           ? await authClient.signIn.email({
               email,
               password,
@@ -58,43 +55,38 @@ export function AuthPanel() {
               name,
               email,
               password,
-            })
+            });
 
       if (result.error) {
-        setError(result.error.message ?? 'Unable to authenticate')
-        return
+        setError(result.error.message ?? "Unable to authenticate");
+        return;
       }
 
-      navigate('/workspace', { replace: true })
+      navigate("/workspace", { replace: true });
     } catch {
-      setError('Unable to authenticate. Check your details and try again.')
+      setError("Unable to authenticate. Check your details and try again.");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const switchMode = () => {
-    setMode((value) => (value === 'sign-in' ? 'sign-up' : 'sign-in'))
-    setError(null)
-  }
+    setMode((value) => (value === "sign-in" ? "sign-up" : "sign-in"));
+    setError(null);
+  };
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
       <section className="mx-auto grid min-h-screen max-w-7xl gap-8 px-5 py-6 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
-        <div className="flex flex-col justify-between rounded-lg border border-(--color-border) bg-[linear-gradient(135deg,#ffffff_0%,#f3f8ef_100%)] p-5 md:p-7">
+        <div className="flex flex-col justify-between rounded-lg border border-(--color-border) bg-[linear-gradient(145deg,#f7faf2_0%,#dceccc_100%)] p-5 md:p-7">
           <div className="flex items-center justify-between gap-4">
             <Link className="flex items-center gap-3" to="/">
               <span className="flex size-9 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
                 <AudioWaveform className="size-5" />
               </span>
-              <span className="font-serif text-2xl leading-none">DubStudio AI</span>
-            </Link>
-            <Link
-              className="inline-flex items-center gap-2 rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm font-semibold transition hover:border-(--color-text)"
-              to="/"
-            >
-              <ArrowLeft className="size-4" />
-              Home
+              <span className="font-serif text-2xl leading-none">
+                DubStudio AI
+              </span>
             </Link>
           </div>
 
@@ -106,18 +98,18 @@ export function AuthPanel() {
               Keep each dubbing job tied to your studio.
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-(--color-text-dim)">
-              Uploads, processing status, and download links stay private to your signed-in workspace.
+              Uploads, processing status, and download links stay private to
+              your signed-in workspace.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {authHighlights.map((item) => (
-              <div className="rounded-md border border-(--color-border) bg-white p-3" key={item}>
-                <CheckCircle2 className="mb-3 size-4 text-emerald-600" />
-                <p className="text-sm font-semibold">{item}</p>
-              </div>
-            ))}
-          </div>
+          <Link
+            className="inline-flex w-fit items-center gap-2 rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm font-semibold transition hover:border-(--color-text)"
+            to="/"
+          >
+            <ArrowLeft className="size-4" />
+            Back to home
+          </Link>
         </div>
 
         <form
@@ -139,7 +131,7 @@ export function AuthPanel() {
           </div>
 
           <div className="space-y-4">
-            {mode === 'sign-up' && (
+            {mode === "sign-up" && (
               <label className="block">
                 <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                   Name
@@ -195,6 +187,13 @@ export function AuthPanel() {
 
           {error && <p className="mt-5 text-sm text-red-600">{error}</p>}
 
+          {mode === "sign-up" ? (
+            <p className="mt-5 text-sm text-(--color-text-dim)">
+              New accounts can sign in immediately, but workspace access unlocks
+              after admin approval.
+            </p>
+          ) : null}
+
           <button
             className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-(--color-text) bg-(--color-accent) px-4 py-3 text-sm font-semibold text-(--color-accent-text) transition hover:bg-(--color-accent-hover) disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting}
@@ -214,5 +213,5 @@ export function AuthPanel() {
         </form>
       </section>
     </main>
-  )
+  );
 }
