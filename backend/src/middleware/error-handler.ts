@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import multer from 'multer'
 import { ZodError } from 'zod'
 import { HttpError } from '../lib/http-error.js'
 
@@ -23,6 +24,13 @@ export const errorHandler = (
       success: false,
       message: error.message,
       details: error.details,
+    })
+  }
+
+  if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'Video file must be 50 MB or smaller',
     })
   }
 

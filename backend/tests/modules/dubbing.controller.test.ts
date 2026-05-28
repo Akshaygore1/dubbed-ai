@@ -7,6 +7,8 @@ import {
   downloadDubbingJobVideo,
   getDubbingJob,
   listDubbingJobs,
+  maxVideoFileSizeBytes,
+  uploadVideo,
 } from '../../src/modules/dubbing/dubbing.controller.js'
 
 const mocks = vi.hoisted(() => ({
@@ -151,6 +153,12 @@ describe('dubbing controller', () => {
   })
 
   describe('createDubbingJob', () => {
+    it('limits uploaded videos to 50 MB', () => {
+      expect(uploadVideo.limits).toMatchObject({
+        fileSize: maxVideoFileSizeBytes,
+      })
+    })
+
     it('uploads the video, creates a user-owned job, enqueues work, and responds with the job', async () => {
       const req = createVideoRequest()
       const res = createResponse()

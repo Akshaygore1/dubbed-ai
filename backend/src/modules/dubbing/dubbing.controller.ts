@@ -16,6 +16,7 @@ import {
 import { publishDubbingJob } from '../../lib/queue.js'
 
 const allowedMimeTypePrefix = 'video/'
+export const maxVideoFileSizeBytes = 50 * 1024 * 1024
 
 const selectDubbingJobFields = {
   id: dubbingJobs.id,
@@ -137,7 +138,7 @@ const getJobIdParam = (req: Request) => {
 export const uploadVideo = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 500 * 1024 * 1024,
+    fileSize: maxVideoFileSizeBytes,
   },
   fileFilter: (_req, file, callback) => {
     if (!file.mimetype.startsWith(allowedMimeTypePrefix)) {

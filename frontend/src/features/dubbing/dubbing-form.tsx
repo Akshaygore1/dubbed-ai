@@ -24,6 +24,9 @@ import {
 } from "./dubbing-schema";
 import { useDubbingForm } from "./use-dubbing-form";
 
+const MAX_VIDEO_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_FILE_SIZE_MESSAGE = "Video file must be 50 MB or smaller";
+
 export function DubbingForm() {
   const inputId = useId();
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -48,33 +51,61 @@ export function DubbingForm() {
     setIsDragging(false);
   }, []);
 
+  const validateVideoFile = useCallback((file: File | undefined) => {
+    if (!file || !file.type.startsWith("video/")) {
+      return "Please select a valid video file";
+    }
+
+    if (file.size > MAX_VIDEO_FILE_SIZE_BYTES) {
+      return MAX_VIDEO_FILE_SIZE_MESSAGE;
+    }
+
+    return null;
+  }, []);
+
   const handleDrop = useCallback((event: DragEvent) => {
     event.preventDefault();
     setIsDragging(false);
     const file = event.dataTransfer.files[0];
+    const error = validateVideoFile(file);
 
-    if (file && file.type.startsWith("video/")) {
-      setVideoFile(file);
-      setFileError(null);
+    if (error) {
+      setVideoFile(null);
+      setFileError(
+        error === "Please select a valid video file"
+          ? "Please drop a valid video file"
+          : error,
+      );
       return;
     }
 
-    setFileError("Please drop a valid video file");
-  }, []);
+    if (!file) {
+      return;
+    }
+
+    setVideoFile(file);
+    setFileError(null);
+  }, [validateVideoFile]);
 
   const handleFileSelect = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
+      const error = validateVideoFile(file);
 
-      if (file && file.type.startsWith("video/")) {
-        setVideoFile(file);
-        setFileError(null);
+      if (error) {
+        setVideoFile(null);
+        setFileError(error);
         return;
       }
 
-      setFileError("Please select a valid video file");
+      if (!file) {
+        return;
+      }
+
+      setVideoFile(file);
+      setFileError(null);
     },
-    [],
+    [validateVideoFile],
   );
 
   const clearFile = useCallback(() => {
@@ -87,6 +118,17 @@ export function DubbingForm() {
       setFileError("Please select a video file before submitting");
       showSnackbar({
         message: "Add a video file before starting processing.",
+        variant: "error",
+      });
+      return;
+    }
+
+    const error = validateVideoFile(videoFile);
+
+    if (error) {
+      setFileError(error);
+      showSnackbar({
+        message: error,
         variant: "error",
       });
       return;
@@ -130,7 +172,7 @@ export function DubbingForm() {
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 font-mono text-xs text-(--color-text-dim)">
           <UploadCloud className="size-3.5 text-(--color-blue)" />
-          MP4 MOV WebM
+          MP4 MOV WebM / Max 50 MB
         </div>
       </div>
 

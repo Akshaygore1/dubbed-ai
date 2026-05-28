@@ -1,4 +1,5 @@
 import type { Response } from 'express'
+import multer from 'multer'
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { HttpError } from '../../src/lib/http-error.js'
@@ -53,6 +54,18 @@ describe('errorHandler', () => {
       success: false,
       message: 'Authentication required',
       details,
+    })
+  })
+
+  it('returns a file size response for oversized uploads', () => {
+    const res = createResponse()
+
+    errorHandler(new multer.MulterError('LIMIT_FILE_SIZE'), {} as never, res, undefined)
+
+    expect(res.status).toHaveBeenCalledWith(413)
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Video file must be 50 MB or smaller',
     })
   })
 
