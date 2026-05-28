@@ -87,9 +87,10 @@ export function AdminLoginPage() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Admin email
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3">
                 <Mail className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
+                  aria-label="Admin email"
                   className="w-full bg-transparent text-sm outline-none"
                   onChange={(event) => setEmail(event.target.value)}
                   required
@@ -103,9 +104,10 @@ export function AdminLoginPage() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Password
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3">
                 <KeyRound className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
+                  aria-label="Password"
                   className="w-full bg-transparent text-sm outline-none"
                   minLength={8}
                   onChange={(event) => setPassword(event.target.value)}

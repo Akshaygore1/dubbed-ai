@@ -7,7 +7,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useReducer } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
 
@@ -28,20 +28,37 @@ const authCopy = {
   },
 } as const;
 
+type AuthState = {
+  mode: AuthMode;
+  name: string;
+  email: string;
+  password: string;
+  error: string | null;
+  isSubmitting: boolean;
+};
+
+const initialAuthState: AuthState = {
+  mode: "sign-in",
+  name: "",
+  email: "",
+  password: "",
+  error: null,
+  isSubmitting: false,
+};
+
+function authReducer(state: AuthState, update: Partial<AuthState>) {
+  return { ...state, ...update };
+}
+
 export function AuthPanel() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AuthMode>("sign-in");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [state, updateAuth] = useReducer(authReducer, initialAuthState);
+  const { mode, name, email, password, error, isSubmitting } = state;
   const copy = authCopy[mode];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
+    updateAuth({ error: null, isSubmitting: true });
 
     try {
       const result =
@@ -58,21 +75,27 @@ export function AuthPanel() {
             });
 
       if (result.error) {
-        setError(result.error.message ?? "Unable to authenticate");
+        updateAuth({
+          error: result.error.message ?? "Unable to authenticate",
+        });
         return;
       }
 
       navigate("/workspace", { replace: true });
     } catch {
-      setError("Unable to authenticate. Check your details and try again.");
+      updateAuth({
+        error: "Unable to authenticate. Check your details and try again.",
+      });
     } finally {
-      setIsSubmitting(false);
+      updateAuth({ isSubmitting: false });
     }
   };
 
   const switchMode = () => {
-    setMode((value) => (value === "sign-in" ? "sign-up" : "sign-in"));
-    setError(null);
+    updateAuth({
+      mode: mode === "sign-in" ? "sign-up" : "sign-in",
+      error: null,
+    });
   };
 
   return (
@@ -136,12 +159,13 @@ export function AuthPanel() {
                 <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                   Name
                 </span>
-                <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+                <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
                   <User className="size-4 shrink-0 text-(--color-text-dim)" />
                   <input
+                    aria-label="Name"
                     className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(event) => updateAuth({ name: event.target.value })}
                     placeholder="Your name"
                     required
                   />
@@ -153,13 +177,14 @@ export function AuthPanel() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Email
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
                 <Mail className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
+                  aria-label="Email"
                   className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => updateAuth({ email: event.target.value })}
                   placeholder="you@example.com"
                   required
                 />
@@ -170,13 +195,16 @@ export function AuthPanel() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Password
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-3 focus-within:border-(--color-blue)">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
                 <Lock className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
+                  aria-label="Password"
                   className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="password"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) =>
+                    updateAuth({ password: event.target.value })
+                  }
                   placeholder="At least 8 characters"
                   minLength={8}
                   required

@@ -14,15 +14,17 @@ import { api } from '@/lib/api'
 
 const tabs = ['pending', 'approved'] as const
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
+
 const formatDate = (value: string | null) => {
   if (!value) {
     return 'Not approved'
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+  return dateFormatter.format(new Date(value))
 }
 
 export function AdminUsersPage() {

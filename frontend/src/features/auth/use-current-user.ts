@@ -19,7 +19,7 @@ const fetchCurrentUser = async () => {
   return data.data
 }
 
-export const currentUserQueryKey = ['current-user'] as const
+const currentUserQueryKey = ['current-user'] as const
 
 export const useCurrentUser = ({
   enabled,

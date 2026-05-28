@@ -75,12 +75,11 @@ function SnackbarItem({
   }, [onDismiss, snackbar.id])
 
   return (
-    <div
+    <output
       className={cn(
         'flex items-start gap-3 rounded-md border px-4 py-3 shadow-[0_18px_48px_rgba(21,23,19,0.16)] backdrop-blur',
         snackbarStyles[snackbar.variant],
       )}
-      role="status"
     >
       <Icon className="mt-0.5 size-4 shrink-0" />
       <p className="flex-1 text-sm leading-relaxed">{snackbar.message}</p>
@@ -92,6 +91,6 @@ function SnackbarItem({
         <span className="sr-only">Dismiss notification</span>
         <X className="size-4" />
       </button>
-    </div>
+    </output>
   )
 }

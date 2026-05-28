@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 export type SnackbarVariant = 'success' | 'error' | 'info'
 
@@ -20,7 +20,7 @@ type SnackbarContextValue = {
 export const SnackbarContext = createContext<SnackbarContextValue | null>(null)
 
 export function useSnackbar() {
-  const context = useContext(SnackbarContext)
+  const context = use(SnackbarContext)
 
   if (!context) {
     throw new Error('useSnackbar must be used within SnackbarProvider')

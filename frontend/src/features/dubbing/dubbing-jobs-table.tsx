@@ -6,6 +6,13 @@ import { getDubbingJobDownloadUrl, useDubbingJobs } from "./use-dubbing-jobs";
 
 const RECENT_JOB_LIMIT = 6;
 
+const updatedTimeFormatter = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 const statusClasses = {
   pending: "border-amber-200 bg-amber-50 text-amber-700",
   processing: "border-blue-200 bg-blue-50 text-blue-700",
@@ -16,12 +23,7 @@ const statusClasses = {
 const shortJobId = (id: string) => id.slice(0, 8);
 
 const formatUpdatedTime = (value: string) =>
-  new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
+  updatedTimeFormatter.format(new Date(value));
 
 export function DubbingJobsTable() {
   const { data: jobs, isLoading, isError, error } = useDubbingJobs();
@@ -30,7 +32,7 @@ export function DubbingJobsTable() {
 
   const sortedJobs = useMemo(
     () =>
-      [...(jobs ?? [])].sort(
+      (jobs ?? []).toSorted(
         (first, second) =>
           new Date(second.updatedAt).getTime() -
           new Date(first.updatedAt).getTime(),

@@ -189,6 +189,7 @@ export function DubbingForm() {
             <span className="sr-only">Choose a video file</span>
           </label>
           <input
+            aria-label="Choose a video file"
             id={inputId}
             type="file"
             accept="video/*"
@@ -245,7 +246,7 @@ export function DubbingForm() {
       <div className="mb-5 rounded-md border border-(--color-border) bg-(--color-bg)">
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold text-(--color-text)"
+          className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm font-semibold text-(--color-text)"
           onClick={() => setShowAdvanced((value) => !value)}
           aria-expanded={showAdvanced}
         >
