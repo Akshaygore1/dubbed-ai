@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export type AdminUser = {
@@ -25,10 +25,31 @@ const fetchAdminUsers = async (status: 'pending' | 'approved') => {
 export const adminUsersQueryKey = (status: 'pending' | 'approved') =>
   ['admin-users', status] as const
 
-export const useAdminUsers = (status: 'pending' | 'approved', enabled = true) =>
-  useQuery({
+export const adminUsersQueryOptions = (status: 'pending' | 'approved') =>
+  queryOptions({
     queryKey: adminUsersQueryKey(status),
     queryFn: () => fetchAdminUsers(status),
-    enabled,
     retry: false,
   })
+
+export const useAdminUsers = (status: 'pending' | 'approved', enabled = true) =>
+  useQuery({
+    ...adminUsersQueryOptions(status),
+    enabled,
+  })
+
+export const useApproveAdminUserMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await api.post(`/admin/users/${userId}/approve`)
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey('pending') }),
+        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey('approved') }),
+      ])
+    },
+  })
+}

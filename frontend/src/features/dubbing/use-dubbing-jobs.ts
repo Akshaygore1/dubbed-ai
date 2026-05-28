@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { env } from '@/lib/env'
 
@@ -31,13 +31,18 @@ const fetchDubbingJobs = async () => {
 
 export const dubbingJobsQueryKey = ['dubbing-jobs'] as const
 
+export const dubbingJobsQueryOptions = () =>
+  queryOptions({
+    queryKey: dubbingJobsQueryKey,
+    queryFn: fetchDubbingJobs,
+  })
+
 export const getDubbingJobDownloadUrl = (jobId: string) =>
   `${env.apiUrl}/dubbing/${jobId}/download`
 
 export const useDubbingJobs = () =>
   useQuery({
-    queryKey: dubbingJobsQueryKey,
-    queryFn: fetchDubbingJobs,
+    ...dubbingJobsQueryOptions(),
     refetchInterval: (query) =>
       query.state.data?.some((job) => job.status === 'pending' || job.status === 'processing')
         ? 3000

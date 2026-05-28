@@ -1,34 +1,27 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { AudioWaveform, KeyRound, LoaderCircle, Mail, Shield } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { adminSessionQueryKey } from '@/features/admin/use-admin-session'
-import { api } from '@/lib/api'
+import { useAdminLoginMutation } from '@/features/admin/use-admin-session'
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const loginMutation = useAdminLoginMutation()
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
-    setIsSubmitting(true)
 
     try {
-      await api.post('/admin/login', {
+      await loginMutation.mutateAsync({
         email,
         password,
       })
-      await queryClient.invalidateQueries({ queryKey: adminSessionQueryKey })
       navigate('/admin/users', { replace: true })
     } catch {
       setError('Invalid admin credentials')
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -123,10 +116,10 @@ export function AdminLoginPage() {
 
           <button
             className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-md border border-(--color-text) bg-(--color-text) px-4 py-3 text-sm font-semibold text-(--color-bg) transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isSubmitting}
+            disabled={loginMutation.isPending}
             type="submit"
           >
-            {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            {loginMutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
             Open admin portal
           </button>
         </form>

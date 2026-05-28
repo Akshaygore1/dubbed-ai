@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AudioWaveform,
   CheckCircle2,
@@ -8,9 +7,8 @@ import {
   UserRoundPlus,
 } from 'lucide-react'
 import { useState } from 'react'
-import { adminSessionQueryKey } from '@/features/admin/use-admin-session'
-import { adminUsersQueryKey, useAdminUsers } from '@/features/admin/use-admin-users'
-import { api } from '@/lib/api'
+import { useAdminLogoutMutation } from '@/features/admin/use-admin-session'
+import { useAdminUsers, useApproveAdminUserMutation } from '@/features/admin/use-admin-users'
 
 const tabs = ['pending', 'approved'] as const
 
@@ -28,33 +26,14 @@ const formatDate = (value: string | null) => {
 }
 
 export function AdminUsersPage() {
-  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('pending')
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { data: users = [], isLoading } = useAdminUsers(activeTab)
-
-  const approveMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      await api.post(`/admin/users/${userId}/approve`)
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey('pending') }),
-        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey('approved') }),
-      ])
-    },
-  })
+  const approveMutation = useApproveAdminUserMutation()
+  const logoutMutation = useAdminLogoutMutation()
 
   const handleLogout = async () => {
-    setIsLoggingOut(true)
-
-    try {
-      await api.post('/admin/logout')
-      await queryClient.invalidateQueries({ queryKey: adminSessionQueryKey })
-      navigateToAdminLogin()
-    } finally {
-      setIsLoggingOut(false)
-    }
+    await logoutMutation.mutateAsync()
+    navigateToAdminLogin()
   }
 
   return (
@@ -78,11 +57,11 @@ export function AdminUsersPage() {
 
           <button
             className="inline-flex items-center justify-center gap-2 rounded-md border border-(--color-border) bg-white px-4 py-3 text-sm font-semibold transition hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isLoggingOut}
+            disabled={logoutMutation.isPending}
             onClick={handleLogout}
             type="button"
           >
-            {isLoggingOut ? (
+            {logoutMutation.isPending ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <LogOut className="size-4" />

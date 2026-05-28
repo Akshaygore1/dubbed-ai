@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export type CurrentUser = {
@@ -19,7 +19,14 @@ const fetchCurrentUser = async () => {
   return data.data
 }
 
-const currentUserQueryKey = ['current-user'] as const
+export const currentUserQueryKey = ['current-user'] as const
+
+export const currentUserQueryOptions = () =>
+  queryOptions({
+    queryKey: currentUserQueryKey,
+    queryFn: fetchCurrentUser,
+    retry: false,
+  })
 
 export const useCurrentUser = ({
   enabled,
@@ -29,9 +36,7 @@ export const useCurrentUser = ({
   refetchInterval?: number | false
 }) =>
   useQuery({
-    queryKey: currentUserQueryKey,
-    queryFn: fetchCurrentUser,
+    ...currentUserQueryOptions(),
     enabled,
-    retry: false,
     refetchInterval,
   })

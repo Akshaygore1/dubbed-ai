@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export type AdminSession = {
@@ -18,9 +18,44 @@ const fetchAdminSession = async () => {
 
 export const adminSessionQueryKey = ['admin-session'] as const
 
-export const useAdminSession = () =>
-  useQuery({
+export const adminSessionQueryOptions = () =>
+  queryOptions({
     queryKey: adminSessionQueryKey,
     queryFn: fetchAdminSession,
     retry: false,
   })
+
+export const useAdminSession = () =>
+  useQuery(adminSessionQueryOptions())
+
+export const useAdminLoginMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      await api.post('/admin/login', {
+        email,
+        password,
+      })
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminSessionQueryKey })
+    },
+  })
+}
+
+export const useAdminLogoutMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      await api.post('/admin/logout')
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.removeQueries({ queryKey: adminSessionQueryKey }),
+        queryClient.removeQueries({ queryKey: ['admin-users'] }),
+      ])
+    },
+  })
+}
