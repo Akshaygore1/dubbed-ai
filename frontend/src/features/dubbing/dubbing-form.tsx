@@ -95,6 +95,7 @@ export function DubbingForm() {
   const handleFileSelect = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
+      event.currentTarget.value = "";
       const error = validateVideoFile(file);
 
       if (error) {
