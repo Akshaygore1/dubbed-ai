@@ -1,8 +1,22 @@
-import { AlertCircle, Download, LoaderCircle } from "lucide-react";
+import { AlertCircle, Download, LoaderCircle, Trash2 } from "lucide-react";
 import { type MouseEvent, useMemo, useState } from "react";
 import { useSnackbar } from "@/app/providers/snackbar-context";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getDubbingLanguageName } from "./dubbing-languages";
-import { getDubbingJobDownloadUrl, useDubbingJobs } from "./use-dubbing-jobs";
+import {
+  type DubbingJob,
+  getDubbingJobDownloadUrl,
+  useDeleteDubbingJobMutation,
+  useDubbingJobs,
+} from "./use-dubbing-jobs";
 
 const RECENT_JOB_LIMIT = 6;
 
@@ -27,8 +41,12 @@ const formatUpdatedTime = (value: string) =>
 
 export function DubbingJobsTable() {
   const { data: jobs, isLoading, isError, error } = useDubbingJobs();
+  const deleteMutation = useDeleteDubbingJobMutation();
   const { showSnackbar } = useSnackbar();
   const [showAll, setShowAll] = useState(false);
+  const [jobPendingDelete, setJobPendingDelete] = useState<DubbingJob | null>(
+    null,
+  );
 
   const sortedJobs = useMemo(
     () =>
@@ -73,6 +91,26 @@ export function DubbingJobsTable() {
       showSnackbar({
         message:
           "Unable to download this video. Try again after processing completes.",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!jobPendingDelete) {
+      return;
+    }
+
+    try {
+      await deleteMutation.mutateAsync(jobPendingDelete.id);
+      setJobPendingDelete(null);
+      showSnackbar({
+        message: "Video deleted.",
+        variant: "success",
+      });
+    } catch {
+      showSnackbar({
+        message: "Unable to delete this video. Try again in a moment.",
         variant: "error",
       });
     }
@@ -132,6 +170,8 @@ export function DubbingJobsTable() {
               job.status === "pending" || job.status === "processing";
             const canDownload =
               job.status === "completed" && Boolean(job.dubbedVideoKey);
+            const isDeleting =
+              deleteMutation.isPending && deleteMutation.variables === job.id;
 
             return (
               <div
@@ -166,7 +206,7 @@ export function DubbingJobsTable() {
                   ) : null}
                 </div>
 
-                <div className="flex items-center justify-start sm:justify-end">
+                <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
                   {canDownload ? (
                     <a
                       className="inline-flex items-center gap-2 rounded-md border border-(--color-text) bg-white px-3 py-2 text-sm font-semibold text-(--color-text) transition hover:bg-(--color-accent)"
@@ -190,12 +230,87 @@ export function DubbingJobsTable() {
                       Preparing
                     </span>
                   )}
+
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={isActive || isDeleting}
+                    onClick={() => setJobPendingDelete(job)}
+                    title={
+                      isActive
+                        ? "Processing jobs cannot be deleted"
+                        : "Delete video"
+                    }
+                  >
+                    {isDeleting ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
+                    Delete
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+      <Dialog
+        open={Boolean(jobPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) {
+            setJobPendingDelete(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this video?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove job #
+              {jobPendingDelete ? shortJobId(jobPendingDelete.id) : ""} and
+              its generated files from storage. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {jobPendingDelete ? (
+            <div className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2">
+              <p className="text-sm font-semibold text-(--color-text)">
+                {getDubbingLanguageName(jobPendingDelete.targetLanguage)}
+              </p>
+              <p className="mt-1 font-mono text-xs text-(--color-text-dim)">
+                {jobPendingDelete.status} · Updated{" "}
+                {formatUpdatedTime(jobPendingDelete.updatedAt)}
+              </p>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-md border border-(--color-border) bg-white px-4 py-2.5 text-sm font-semibold text-(--color-text) transition hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </button>
+            </DialogClose>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-red-700 bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={deleteMutation.isPending}
+              onClick={() => void handleDelete()}
+            >
+              {deleteMutation.isPending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              Delete video
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

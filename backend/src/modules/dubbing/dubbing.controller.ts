@@ -7,6 +7,7 @@ import { createDubbingSchema } from './dubbing.schema.js'
 import { HttpError } from '../../lib/http-error.js'
 import {
   createVideoObjectKey,
+  deleteObjectsFromR2,
   getSignedObjectDownloadUrl,
   getSignedObjectUrl,
   getSignedVideoUrl,
@@ -254,4 +255,31 @@ export const downloadDubbingJobVideo = async (req: Request, res: Response) => {
   )
 
   res.redirect(downloadUrl)
+}
+
+export const deleteDubbingJob = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
+  const id = getJobIdParam(req)
+  const job = await getScopedDubbingJob(id, userId)
+
+  if (!job) {
+    throw new HttpError(404, 'Job not found')
+  }
+
+  if (job.status === 'pending' || job.status === 'processing') {
+    throw new HttpError(409, 'Active jobs cannot be deleted')
+  }
+
+  await deleteObjectsFromR2([
+    job.videoKey,
+    job.audioKey,
+    job.dubbedAudioKey,
+    job.dubbedVideoKey,
+  ].filter((key): key is string => typeof key === 'string' && key.length > 0))
+
+  await db
+    .delete(dubbingJobs)
+    .where(and(eq(dubbingJobs.id, id), eq(dubbingJobs.userId, userId)))
+
+  res.status(204).send()
 }

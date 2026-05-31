@@ -4,6 +4,7 @@ import { HttpError } from '../../src/lib/http-error.js'
 import { dubbingJobs } from '../../src/db/schema.js'
 import {
   createDubbingJob,
+  deleteDubbingJob,
   downloadDubbingJobVideo,
   getDubbingJob,
   listDubbingJobs,
@@ -13,6 +14,7 @@ import {
 
 const mocks = vi.hoisted(() => ({
   db: {
+    delete: vi.fn(),
     insert: vi.fn(),
     select: vi.fn(),
     update: vi.fn(),
@@ -21,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((column: unknown, value: unknown) => ({ op: 'eq', column, value })),
   createVideoObjectKey: vi.fn(),
+  deleteObjectsFromR2: vi.fn(),
   getSignedObjectDownloadUrl: vi.fn(),
   getSignedObjectUrl: vi.fn(),
   getSignedVideoUrl: vi.fn(),
@@ -41,6 +44,7 @@ vi.mock('drizzle-orm', () => ({
 
 vi.mock('../../src/lib/r2.js', () => ({
   createVideoObjectKey: mocks.createVideoObjectKey,
+  deleteObjectsFromR2: mocks.deleteObjectsFromR2,
   getSignedObjectDownloadUrl: mocks.getSignedObjectDownloadUrl,
   getSignedObjectUrl: mocks.getSignedObjectUrl,
   getSignedVideoUrl: mocks.getSignedVideoUrl,
@@ -56,6 +60,7 @@ type MockResponse = Response & {
   status: ReturnType<typeof vi.fn>
   json: ReturnType<typeof vi.fn>
   redirect: ReturnType<typeof vi.fn>
+  send: ReturnType<typeof vi.fn>
 }
 
 const createdAt = new Date('2026-05-18T10:00:00.000Z')
@@ -87,6 +92,7 @@ const createResponse = (userId: string | undefined = 'user_123') => {
     status: vi.fn(),
     json: vi.fn(),
     redirect: vi.fn(),
+    send: vi.fn(),
   }
 
   res.status.mockReturnValue(res)
@@ -123,6 +129,13 @@ const mockUpdateWhere = () => {
   return { set, where }
 }
 
+const mockDeleteWhere = () => {
+  const where = vi.fn().mockResolvedValue(undefined)
+  mocks.db.delete.mockReturnValue({ where })
+
+  return { where }
+}
+
 const mockSelectWhere = (rows: unknown[]) => {
   const where = vi.fn().mockResolvedValue(rows)
   const from = vi.fn(() => ({ where }))
@@ -148,6 +161,7 @@ describe('dubbing controller', () => {
     mocks.getSignedObjectDownloadUrl.mockResolvedValue('https://cdn.test/dubbed/output.mp4?download=1')
     mocks.getSignedVideoUrl.mockResolvedValue('https://cdn.test/videos/input.mp4')
     mocks.getSignedObjectUrl.mockImplementation(async (key: string) => `https://cdn.test/${key}`)
+    mocks.deleteObjectsFromR2.mockResolvedValue(undefined)
     mocks.uploadVideoToR2.mockResolvedValue(undefined)
     mocks.publishDubbingJob.mockResolvedValue(undefined)
   })
@@ -398,6 +412,109 @@ describe('dubbing controller', () => {
         statusCode: 409,
         message: 'Dubbed video is not ready for download',
       })
+    })
+  })
+
+  describe('deleteDubbingJob', () => {
+    it('deletes all stored R2 objects before deleting a completed user-scoped job', async () => {
+      const completedJob = {
+        ...baseJob,
+        status: 'completed' as const,
+        audioKey: 'audio/source.mp3',
+        dubbedAudioKey: 'dubbed-audio/output.m4a',
+        dubbedVideoKey: 'dubbed/output.mp4',
+      }
+      const query = mockSelectWhere([completedJob])
+      const deleteQuery = mockDeleteWhere()
+      const res = createResponse()
+
+      await deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, res)
+
+      expect(query.where).toHaveBeenCalledWith({
+        op: 'and',
+        conditions: [
+          { op: 'eq', column: dubbingJobs.id, value: baseJob.id },
+          { op: 'eq', column: dubbingJobs.userId, value: 'user_123' },
+        ],
+      })
+      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([
+        'videos/input.mp4',
+        'audio/source.mp3',
+        'dubbed-audio/output.m4a',
+        'dubbed/output.mp4',
+      ])
+      expect(mocks.db.delete).toHaveBeenCalledWith(dubbingJobs)
+      expect(deleteQuery.where).toHaveBeenCalledWith({
+        op: 'and',
+        conditions: [
+          { op: 'eq', column: dubbingJobs.id, value: baseJob.id },
+          { op: 'eq', column: dubbingJobs.userId, value: 'user_123' },
+        ],
+      })
+      expect(res.status).toHaveBeenCalledWith(204)
+      expect(res.send).toHaveBeenCalled()
+    })
+
+    it('deletes failed jobs even when no R2 keys are present', async () => {
+      mockSelectWhere([
+        {
+          ...baseJob,
+          status: 'failed' as const,
+          videoKey: null,
+        },
+      ])
+      mockDeleteWhere()
+      const res = createResponse()
+
+      await deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, res)
+
+      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([])
+      expect(mocks.db.delete).toHaveBeenCalledWith(dubbingJobs)
+      expect(res.status).toHaveBeenCalledWith(204)
+    })
+
+    it('throws a 404 when no scoped job is found for deletion', async () => {
+      mockSelectWhere([])
+
+      await expect(
+        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+      ).rejects.toMatchObject<HttpError>({
+        statusCode: 404,
+        message: 'Job not found',
+      })
+
+      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+      expect(mocks.db.delete).not.toHaveBeenCalled()
+    })
+
+    it('throws a 409 and does not delete active jobs', async () => {
+      mockSelectWhere([baseJob])
+
+      await expect(
+        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+      ).rejects.toMatchObject<HttpError>({
+        statusCode: 409,
+        message: 'Active jobs cannot be deleted',
+      })
+
+      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+      expect(mocks.db.delete).not.toHaveBeenCalled()
+    })
+
+    it('keeps the database row when R2 deletion fails', async () => {
+      mockSelectWhere([
+        {
+          ...baseJob,
+          status: 'completed' as const,
+        },
+      ])
+      mocks.deleteObjectsFromR2.mockRejectedValue(new Error('r2 unavailable'))
+
+      await expect(
+        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+      ).rejects.toThrow('r2 unavailable')
+
+      expect(mocks.db.delete).not.toHaveBeenCalled()
     })
   })
 })

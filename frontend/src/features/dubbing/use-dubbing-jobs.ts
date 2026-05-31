@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { env } from '@/lib/env'
 
@@ -48,3 +48,16 @@ export const useDubbingJobs = () =>
         ? 3000
         : false,
   })
+
+export const useDeleteDubbingJobMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      await api.delete(`/dubbing/${jobId}`)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: dubbingJobsQueryKey })
+    },
+  })
+}

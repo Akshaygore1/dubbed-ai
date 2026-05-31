@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import {
+  DeleteObjectsCommand,
   PutObjectCommand,
   GetObjectCommand,
   S3Client,
@@ -40,6 +41,23 @@ export const uploadVideoToR2 = async (input: {
       Key: input.key,
       Body: input.body,
       ContentType: input.contentType,
+    }),
+  )
+}
+
+export const deleteObjectsFromR2 = async (keys: string[]) => {
+  const uniqueKeys = [...new Set(keys.filter((key) => key.length > 0))]
+
+  if (uniqueKeys.length === 0) {
+    return
+  }
+
+  await r2Client.send(
+    new DeleteObjectsCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Delete: {
+        Objects: uniqueKeys.map((key) => ({ Key: key })),
+      },
     }),
   )
 }
