@@ -249,7 +249,7 @@ export function LandingPage() {
           </div>
         </div>
       </section>
-
+      {/*
       <section
         id="pricing"
         className="mx-auto max-w-7xl px-5 py-20 md:px-8 lg:px-10"
@@ -314,7 +314,7 @@ export function LandingPage() {
             </article>
           ))}
         </div>
-      </section>
+      </section>*/}
 
       <section className="px-5 pb-20 md:px-8 lg:px-10">
         <div className="mx-auto grid max-w-7xl gap-6 rounded-lg border border-(--color-text) bg-(--color-accent) p-6 text-(--color-accent-text) md:grid-cols-[1fr_auto] md:items-center md:p-8">
