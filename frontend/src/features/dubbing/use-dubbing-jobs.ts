@@ -31,7 +31,7 @@ const fetchDubbingJobs = async () => {
 
 export const dubbingJobsQueryKey = ['dubbing-jobs'] as const
 
-export const dubbingJobsQueryOptions = () =>
+const dubbingJobsQueryOptions = () =>
   queryOptions({
     queryKey: dubbingJobsQueryKey,
     queryFn: fetchDubbingJobs,

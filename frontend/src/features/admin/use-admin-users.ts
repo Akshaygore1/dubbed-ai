@@ -22,10 +22,10 @@ const fetchAdminUsers = async (status: 'pending' | 'approved') => {
   return data.data
 }
 
-export const adminUsersQueryKey = (status: 'pending' | 'approved') =>
+const adminUsersQueryKey = (status: 'pending' | 'approved') =>
   ['admin-users', status] as const
 
-export const adminUsersQueryOptions = (status: 'pending' | 'approved') =>
+const adminUsersQueryOptions = (status: 'pending' | 'approved') =>
   queryOptions({
     queryKey: adminUsersQueryKey(status),
     queryFn: () => fetchAdminUsers(status),

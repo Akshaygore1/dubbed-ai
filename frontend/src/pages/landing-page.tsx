@@ -336,9 +336,18 @@ export function LandingPage() {
   );
 }
 
-function StudioWorkflowVisual() {
-  const meterHeights = ["38%", "64%", "46%", "86%", "55%", "72%", "42%", "68%"];
+const STUDIO_WORKFLOW_METER_HEIGHTS = [
+  "38%",
+  "64%",
+  "46%",
+  "86%",
+  "55%",
+  "72%",
+  "42%",
+  "68%",
+];
 
+function StudioWorkflowVisual() {
   return (
     <div
       className="reveal-up relative h-56 overflow-hidden rounded-lg border border-(--color-text) bg-(--color-surface) p-4 shadow-[10px_10px_0_rgba(21,23,19,0.12)] sm:h-72 lg:h-auto lg:min-h-[520px]"
@@ -420,7 +429,7 @@ function StudioWorkflowVisual() {
               <CheckCircle2 className="size-4 text-emerald-600" />
             </div>
             <div className="flex h-24 items-end gap-2">
-              {meterHeights.map((height, index) => (
+              {STUDIO_WORKFLOW_METER_HEIGHTS.map((height, index) => (
                 <span
                   className="meter-pulse w-full rounded-sm bg-(--color-blue)"
                   key={`${height}-${index}`}

@@ -16,9 +16,9 @@ const fetchAdminSession = async () => {
   return data.data
 }
 
-export const adminSessionQueryKey = ['admin-session'] as const
+const adminSessionQueryKey = ['admin-session'] as const
 
-export const adminSessionQueryOptions = () =>
+const adminSessionQueryOptions = () =>
   queryOptions({
     queryKey: adminSessionQueryKey,
     queryFn: fetchAdminSession,
