@@ -3,7 +3,6 @@ import {
   AudioWaveform,
   Building2,
   Captions,
-  Check,
   CheckCircle2,
   Cpu,
   Download,
@@ -57,38 +56,38 @@ const useCases = [
   },
 ] as const;
 
-const pricingPlans = [
-  {
-    name: "Free",
-    price: "$0",
-    detail: "For first uploads and workflow trials.",
-    features: [
-      "Limited monthly minutes",
-      "Standard processing queue",
-      "Private job history",
-    ],
-  },
-  {
-    name: "Creator",
-    price: "$19",
-    detail: "For regular channels and course builders.",
-    features: [
-      "Higher dubbing minutes",
-      "Priority queue",
-      "Download-ready workspace",
-    ],
-  },
-  {
-    name: "Agency",
-    price: "$79",
-    detail: "For teams managing recurring localization work.",
-    features: [
-      "Shared production view",
-      "Batch-ready capacity",
-      "Client delivery records",
-    ],
-  },
-] as const;
+// const pricingPlans = [
+//   {
+//     name: "Free",
+//     price: "$0",
+//     detail: "For first uploads and workflow trials.",
+//     features: [
+//       "Limited monthly minutes",
+//       "Standard processing queue",
+//       "Private job history",
+//     ],
+//   },
+//   {
+//     name: "Creator",
+//     price: "$19",
+//     detail: "For regular channels and course builders.",
+//     features: [
+//       "Higher dubbing minutes",
+//       "Priority queue",
+//       "Download-ready workspace",
+//     ],
+//   },
+//   {
+//     name: "Agency",
+//     price: "$79",
+//     detail: "For teams managing recurring localization work.",
+//     features: [
+//       "Shared production view",
+//       "Batch-ready capacity",
+//       "Client delivery records",
+//     ],
+//   },
+// ] as const;
 
 export function LandingPage() {
   return (
