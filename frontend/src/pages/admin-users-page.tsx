@@ -1,13 +1,6 @@
-import {
-  AudioWaveform,
-  CheckCircle2,
-  LoaderCircle,
-  LogOut,
-  ShieldCheck,
-  UserRoundPlus,
-} from 'lucide-react'
+import { CheckCircle2, LoaderCircle, ShieldCheck, UserRoundPlus } from 'lucide-react'
 import { useState } from 'react'
-import { useAdminLogoutMutation } from '@/features/admin/use-admin-session'
+import { AdminShell } from '@/features/admin/admin-shell'
 import { useAdminUsers, useApproveAdminUserMutation } from '@/features/admin/use-admin-users'
 
 const tabs = ['pending', 'approved'] as const
@@ -29,47 +22,13 @@ export function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('pending')
   const { data: users = [], isLoading } = useAdminUsers(activeTab)
   const approveMutation = useApproveAdminUserMutation()
-  const logoutMutation = useAdminLogoutMutation()
-
-  const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    navigateToAdminLogin()
-  }
 
   return (
-    <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 lg:px-10">
-        <header className="mb-8 flex flex-col gap-4 rounded-lg border border-(--color-border) bg-[linear-gradient(135deg,#ffffff_0%,#eef6e6_100%)] p-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
-                <AudioWaveform className="size-5" />
-              </span>
-              <span className="font-serif text-2xl leading-none">DubStudio AI</span>
-            </div>
-            <p className="mt-6 font-mono text-xs font-semibold text-(--color-blue)">
-              Admin portal
-            </p>
-            <h1 className="mt-3 font-serif text-5xl leading-tight">
-              Review account approvals.
-            </h1>
-          </div>
-
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-(--color-border) bg-white px-4 py-3 text-sm font-semibold transition hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={logoutMutation.isPending}
-            onClick={handleLogout}
-            type="button"
-          >
-            {logoutMutation.isPending ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : (
-              <LogOut className="size-4" />
-            )}
-            Log out
-          </button>
-        </header>
-
+    <AdminShell
+      activePath="/admin/users"
+      eyebrow="Admin portal"
+      title="Review account approvals."
+    >
         <div className="mb-6 flex flex-wrap gap-3">
           {tabs.map((tab) => (
             <button
@@ -160,11 +119,6 @@ export function AdminUsersPage() {
             )}
           </div>
         </section>
-      </section>
-    </main>
+    </AdminShell>
   )
-}
-
-function navigateToAdminLogin() {
-  window.location.assign('/admin/login')
 }

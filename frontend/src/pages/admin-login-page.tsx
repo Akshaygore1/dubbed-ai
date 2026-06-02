@@ -19,7 +19,7 @@ export function AdminLoginPage() {
         email,
         password,
       })
-      navigate('/admin/users', { replace: true })
+      navigate('/admin/analytics', { replace: true })
     } catch {
       setError('Invalid admin credentials')
     }
@@ -44,10 +44,10 @@ export function AdminLoginPage() {
               Internal approval portal
             </p>
             <h1 className="mt-4 font-serif text-5xl leading-tight md:text-6xl">
-              Review new accounts and unlock workspaces.
+              Review new accounts and track AI spend.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-8 text-(--color-text-dim)">
-              This login is separate from normal user auth and only grants access to the approval list.
+              This login is separate from normal user auth and grants access to approvals and analytics.
             </p>
           </div>
 

@@ -6,6 +6,7 @@ import {
   normalizeAudioForMix,
   prepareAudioClipForTimeline,
 } from "../../../lib/audio.js";
+import { createSmallestTtsUsageEvent } from "../../../lib/ai-analytics.js";
 import { logger } from "../../../lib/logger.js";
 import { synthesizeVoiceCloneSpeech } from "../../../lib/providers/smallest.js";
 import {
@@ -14,6 +15,8 @@ import {
 } from "../../../lib/r2.js";
 import { calculateTtsSpeed } from "../synthesis-timing.js";
 import type { PreparedDubSegment, TranscriptSegment } from "../types.js";
+import { DUBBING_JOB_QUEUE } from "../types.js";
+import { insertAiUsageEvent } from "../repository.js";
 
 type SynthesizeDubbedAudioTaskInput = {
   jobId: string;
@@ -77,6 +80,21 @@ export const synthesizeDubbedAudio = async ({
       outputPathStem: rawAudioPathStem,
     });
 
+    await insertAiUsageEvent(
+      createSmallestTtsUsageEvent({
+        queueName: DUBBING_JOB_QUEUE,
+        jobId,
+        text: translatedText,
+        voiceId,
+        languageCode: targetLanguage,
+        speed: 1,
+        metadata: {
+          segmentIndex: segment.index,
+          pass: "initial",
+        },
+      }),
+    );
+
     logger.info("dubbing_job.segment_synthesized", {
       jobId,
       segmentIndex: segment.index,
@@ -102,6 +120,23 @@ export const synthesizeDubbedAudio = async ({
               speed: ttsSpeed,
               outputPathStem: rawAudioPathStem,
             });
+
+      if (ttsSpeed !== 1) {
+        await insertAiUsageEvent(
+          createSmallestTtsUsageEvent({
+            queueName: DUBBING_JOB_QUEUE,
+            jobId,
+            text: translatedText,
+            voiceId,
+            languageCode: targetLanguage,
+            speed: ttsSpeed,
+            metadata: {
+              segmentIndex: segment.index,
+              pass: "retimed",
+            },
+          }),
+        );
+      }
 
       await normalizeAudioForMix(
         fittedSynthesizedAudio.outputPath,

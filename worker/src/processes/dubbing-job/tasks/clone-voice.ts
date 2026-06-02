@@ -1,7 +1,10 @@
 import path from "node:path";
 import { trimAudioSample } from "../../../lib/audio.js";
+import { createSmallestVoiceCloneUsageEvent } from "../../../lib/ai-analytics.js";
 import { createVoiceClone } from "../../../lib/providers/smallest.js";
 import type { TranscriptSegment } from "../types.js";
+import { insertAiUsageEvent } from "../repository.js";
+import { DUBBING_JOB_QUEUE } from "../types.js";
 import { selectVoiceSampleWindow } from "./select-voice-sample.js";
 
 type CloneVoiceTaskInput = {
@@ -38,6 +41,15 @@ export const cloneVoice = async ({
     samplePath,
     languageCode: sourceLanguage,
   });
+
+  await insertAiUsageEvent(
+    createSmallestVoiceCloneUsageEvent({
+      queueName: DUBBING_JOB_QUEUE,
+      jobId,
+      languageCode: sourceLanguage,
+      sampleDurationSeconds: sampleWindow.durationSeconds,
+    }),
+  );
 
   return { voiceId };
 };

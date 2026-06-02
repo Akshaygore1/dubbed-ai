@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { dubbingJobs } from "../../db/schema.js";
+import { aiUsageEvents, dubbingJobs } from "../../db/schema.js";
 
 export const getDubbingJobById = async (jobId: string) => {
   const [job] = await db
@@ -54,4 +54,10 @@ export const updateDubbingJobIfStatus = async (
     .returning({ id: dubbingJobs.id });
 
   return updatedRows.length > 0;
+};
+
+export const insertAiUsageEvent = async (
+  values: typeof aiUsageEvents.$inferInsert,
+) => {
+  await db.insert(aiUsageEvents).values(values);
 };

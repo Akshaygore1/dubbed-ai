@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/ui/app-shell'
 import { LandingPage } from '@/pages/landing-page'
 import {
+  AdminAnalyticsRoute,
   AdminLoginRoute,
   AdminUsersRoute,
   AuthRoute,
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: 'admin/users',
         element: <AdminUsersRoute />,
+      },
+      {
+        path: 'admin/analytics',
+        element: <AdminAnalyticsRoute />,
       },
       {
         path: '*',

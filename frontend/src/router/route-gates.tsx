@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAdminSession } from '@/features/admin/use-admin-session'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { authClient } from '@/lib/auth-client'
+import { AdminAnalyticsPage } from '@/pages/admin-analytics-page'
 import { AdminLoginPage } from '@/pages/admin-login-page'
 import { AdminUsersPage } from '@/pages/admin-users-page'
 import { AuthPage } from '@/pages/auth-page'
@@ -103,7 +104,7 @@ export function AdminLoginRoute() {
   }
 
   if (adminSession.data) {
-    return <Navigate to="/admin/users" replace />
+    return <Navigate to="/admin/analytics" replace />
   }
 
   return <AdminLoginPage />
@@ -121,6 +122,20 @@ export function AdminUsersRoute() {
   }
 
   return <AdminUsersPage />
+}
+
+export function AdminAnalyticsRoute() {
+  const adminSession = useAdminSession()
+
+  if (adminSession.isLoading) {
+    return <RouteLoader label="Loading admin analytics" />
+  }
+
+  if (adminSession.isError || !adminSession.data) {
+    return <Navigate to="/admin/login" replace />
+  }
+
+  return <AdminAnalyticsPage />
 }
 
 function RouteLoader({ label }: { label: string }) {

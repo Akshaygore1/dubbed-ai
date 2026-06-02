@@ -1,6 +1,27 @@
-import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 export const jobStatusEnum = pgEnum('job_status', ['pending', 'processing', 'completed', 'failed'])
+export const aiProviderEnum = pgEnum('ai_provider', ['sarvam', 'smallest'])
+export const aiOperationEnum = pgEnum('ai_operation', [
+  'transcription',
+  'translation',
+  'voice_clone',
+  'tts',
+])
+export const aiBillableUnitEnum = pgEnum('ai_billable_unit', [
+  'audio_second',
+  'character',
+  'request',
+])
+export const aiCurrencyEnum = pgEnum('ai_currency', ['INR', 'USD'])
 
 export const dubbingJobs = pgTable('dubbing_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -21,4 +42,22 @@ export const dubbingJobs = pgTable('dubbing_jobs', {
   errorMessage: text('error_message'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const aiUsageEvents = pgTable('ai_usage_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  queueName: text('queue_name').notNull(),
+  jobId: uuid('job_id').references(() => dubbingJobs.id, {
+    onDelete: 'set null',
+  }),
+  provider: aiProviderEnum('provider').notNull(),
+  operation: aiOperationEnum('operation').notNull(),
+  model: text('model'),
+  billableUnit: aiBillableUnitEnum('billable_unit').notNull(),
+  billableQuantity: integer('billable_quantity').notNull(),
+  currency: aiCurrencyEnum('currency'),
+  rateMicros: bigint('rate_micros', { mode: 'number' }),
+  estimatedCostMicros: bigint('estimated_cost_micros', { mode: 'number' }),
+  metadataJson: text('metadata_json'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })

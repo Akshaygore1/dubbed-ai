@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { getMediaDuration } from "../../lib/audio.js";
+import { createSarvamTranscriptionUsageEvent } from "../../lib/ai-analytics.js";
 import { logger } from "../../lib/logger.js";
 import { getUserSafeDubbingErrorMessage } from "./failures.js";
 import {
@@ -17,10 +18,11 @@ import { transcribeAudio } from "./tasks/transcribe-audio.js";
 import { translateTranscript } from "./tasks/translate-transcript.js";
 import {
   getDubbingJobById,
+  insertAiUsageEvent,
   updateDubbingJob,
   updateDubbingJobIfStatus,
 } from "./repository.js";
-import type { DubbingJobMessage } from "./types.js";
+import { DUBBING_JOB_QUEUE, type DubbingJobMessage } from "./types.js";
 
 export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
   logger.info("dubbing_job.received", { jobId });
@@ -85,12 +87,31 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
       audioKey,
     });
 
+    currentStep = "measure_source_audio";
+    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
+    const sourceAudioDurationSeconds = await getMediaDuration(sourceAudioPath);
+    logger.info("dubbing_job.step.completed", {
+      jobId,
+      step: currentStep,
+      sourceAudioDurationSeconds,
+    });
+
     currentStep = "transcribe_audio";
     logger.info("dubbing_job.step.started", { jobId, step: currentStep });
     const transcription = await transcribeAudio({
       sourceAudioPath,
     });
     logger.info("dubbing_job.step.completed", { jobId, step: currentStep });
+
+    await insertAiUsageEvent(
+      createSarvamTranscriptionUsageEvent({
+        queueName: DUBBING_JOB_QUEUE,
+        jobId,
+        audioDurationSeconds: sourceAudioDurationSeconds,
+        withDiarization: true,
+      }),
+    );
+
     const sourceLanguage = resolveSourceLanguage({
       requestedSourceLanguage: job.sourceLanguage,
       detectedSourceLanguage: transcription.detectedLanguageCode,
@@ -99,15 +120,6 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
     assertDifferentDubbingLanguages({
       sourceLanguage,
       targetLanguage: job.targetLanguage,
-    });
-
-    currentStep = "measure_source_audio";
-    logger.info("dubbing_job.step.started", { jobId, step: currentStep });
-    const sourceAudioDurationSeconds = await getMediaDuration(sourceAudioPath);
-    logger.info("dubbing_job.step.completed", {
-      jobId,
-      step: currentStep,
-      sourceAudioDurationSeconds,
     });
 
     currentStep = "segment_transcript_sentences";
@@ -152,6 +164,7 @@ export const processDubbingJob = async ({ jobId }: DubbingJobMessage) => {
     currentStep = "translate_transcript";
     logger.info("dubbing_job.step.started", { jobId, step: currentStep });
     const translatedSegments = await translateTranscript({
+      jobId,
       segments: sentenceSegments,
       sourceLanguage,
       targetLanguage: job.targetLanguage,

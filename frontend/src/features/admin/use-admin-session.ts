@@ -55,6 +55,7 @@ export const useAdminLogoutMutation = () => {
       await Promise.all([
         queryClient.removeQueries({ queryKey: adminSessionQueryKey }),
         queryClient.removeQueries({ queryKey: ['admin-users'] }),
+        queryClient.removeQueries({ queryKey: ['admin-ai-analytics'] }),
       ])
     },
   })
