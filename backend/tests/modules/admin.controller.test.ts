@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../src/lib/http-error.js'
 import {
   approveAdminUser,
+  getAdminAiAnalytics,
   getAdminSession,
   listAdminUsers,
   loginAdmin,
@@ -13,14 +14,20 @@ const mocks = vi.hoisted(() => ({
   env: {
     ADMIN_EMAIL: 'admin@example.com',
     ADMIN_PASSWORD: 'supersecret-password',
+    AI_ANALYTICS_USD_TO_INR_RATE: 86.5,
   },
   db: {
     select: vi.fn(),
     update: vi.fn(),
+    execute: vi.fn(),
   },
   eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
   and: vi.fn((...conditions: unknown[]) => ({ conditions })),
   desc: vi.fn((column: unknown) => ({ column })),
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    strings,
+    values,
+  })),
   createAdminSessionToken: vi.fn(),
   setAdminSessionCookie: vi.fn(),
   clearAdminSessionCookie: vi.fn(),
@@ -38,6 +45,7 @@ vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   desc: mocks.desc,
   eq: mocks.eq,
+  sql: mocks.sql,
 }))
 
 vi.mock('../../src/lib/admin-session.js', () => ({
@@ -86,6 +94,14 @@ const mockUpdateReturning = (rows: unknown[]) => {
   const set = vi.fn(() => ({ where }))
   mocks.db.update.mockReturnValue({ set })
   return { set, where, returning }
+}
+
+const mockExecuteRows = (rowsByCall: unknown[][]) => {
+  mocks.db.execute.mockReset()
+
+  for (const rows of rowsByCall) {
+    mocks.db.execute.mockResolvedValueOnce({ rows })
+  }
 }
 
 describe('admin controller', () => {
@@ -284,6 +300,152 @@ describe('admin controller', () => {
     ).rejects.toMatchObject<HttpError>({
       statusCode: 404,
       message: 'User not found',
+    })
+  })
+
+  it('returns admin ai analytics with queue totals and recent events', async () => {
+    const res = createResponse()
+
+    mockExecuteRows([
+      [
+        {
+          event_count: 3,
+          total_inr_micros: 16000000,
+          total_usd_micros: 5000,
+        },
+      ],
+      [
+        {
+          queue_name: 'dubbing-job',
+          event_count: 3,
+          total_inr_micros: 16000000,
+          total_usd_micros: 5000,
+          last_event_at: new Date('2026-06-01T08:30:00.000Z'),
+        },
+      ],
+      [
+        {
+          queue_name: 'dubbing-job',
+          provider: 'sarvam',
+          operation: 'translation',
+          model: 'mayura:v1',
+          event_count: 2,
+          total_billable_quantity: 800,
+          total_inr_micros: 16000000,
+          total_usd_micros: 0,
+          last_event_at: new Date('2026-06-01T08:30:00.000Z'),
+        },
+        {
+          queue_name: 'dubbing-job',
+          provider: 'smallest',
+          operation: 'voice_clone',
+          model: 'voice-cloning',
+          event_count: 1,
+          total_billable_quantity: 1,
+          total_inr_micros: 0,
+          total_usd_micros: 0,
+          last_event_at: new Date('2026-06-01T08:40:00.000Z'),
+        },
+      ],
+      [
+        {
+          id: 'evt_1',
+          queue_name: 'dubbing-job',
+          job_id: 'job_1',
+          provider: 'smallest',
+          operation: 'voice_clone',
+          model: 'voice-cloning',
+          billable_unit: 'request',
+          billable_quantity: 1,
+          currency: null,
+          rate_micros: null,
+          estimated_cost_micros: null,
+          metadata_json: JSON.stringify({
+            sampleDurationSeconds: 12.3,
+          }),
+          created_at: new Date('2026-06-01T08:40:00.000Z'),
+        },
+      ],
+    ])
+
+    await getAdminAiAnalytics(
+      {
+        query: {
+          range: '30d',
+        },
+      } as unknown as Request,
+      res,
+    )
+
+    expect(mocks.db.execute).toHaveBeenCalledTimes(4)
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data: {
+        range: '30d',
+        since: expect.any(String),
+        usdToInrRate: 86.5,
+        totals: {
+          eventCount: 3,
+          totalInrMicros: 16000000,
+          totalUsdMicros: 5000,
+          convertedTotalInrMicros: 16432500,
+        },
+        queues: [
+          {
+            queueName: 'dubbing-job',
+            eventCount: 3,
+            totalInrMicros: 16000000,
+            totalUsdMicros: 5000,
+            convertedTotalInrMicros: 16432500,
+            lastEventAt: '2026-06-01T08:30:00.000Z',
+          },
+        ],
+        breakdown: [
+          {
+            queueName: 'dubbing-job',
+            provider: 'sarvam',
+            operation: 'translation',
+            model: 'mayura:v1',
+            eventCount: 2,
+            totalBillableQuantity: 800,
+            totalInrMicros: 16000000,
+            totalUsdMicros: 0,
+            convertedTotalInrMicros: 16000000,
+            lastEventAt: '2026-06-01T08:30:00.000Z',
+          },
+          {
+            queueName: 'dubbing-job',
+            provider: 'smallest',
+            operation: 'voice_clone',
+            model: 'voice-cloning',
+            eventCount: 1,
+            totalBillableQuantity: 1,
+            totalInrMicros: 0,
+            totalUsdMicros: 0,
+            convertedTotalInrMicros: 0,
+            lastEventAt: '2026-06-01T08:40:00.000Z',
+          },
+        ],
+        recentEvents: [
+          {
+            id: 'evt_1',
+            queueName: 'dubbing-job',
+            jobId: 'job_1',
+            provider: 'smallest',
+            operation: 'voice_clone',
+            model: 'voice-cloning',
+            billableUnit: 'request',
+            billableQuantity: 1,
+            currency: null,
+            rateMicros: null,
+            estimatedCostMicros: null,
+            metadata: {
+              sampleDurationSeconds: 12.3,
+            },
+            createdAt: '2026-06-01T08:40:00.000Z',
+          },
+        ],
+      },
     })
   })
 })

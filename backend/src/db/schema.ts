@@ -1,4 +1,14 @@
-import { boolean, index, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved'])
 
@@ -94,6 +104,20 @@ export const jobStatusEnum = pgEnum('job_status', [
   'failed',
 ])
 
+export const aiProviderEnum = pgEnum('ai_provider', ['sarvam', 'smallest'])
+export const aiOperationEnum = pgEnum('ai_operation', [
+  'transcription',
+  'translation',
+  'voice_clone',
+  'tts',
+])
+export const aiBillableUnitEnum = pgEnum('ai_billable_unit', [
+  'audio_second',
+  'character',
+  'request',
+])
+export const aiCurrencyEnum = pgEnum('ai_currency', ['INR', 'USD'])
+
 export const dubbingJobs = pgTable('dubbing_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
@@ -118,3 +142,31 @@ export const dubbingJobs = pgTable('dubbing_jobs', {
     .defaultNow()
     .notNull(),
 })
+
+export const aiUsageEvents = pgTable(
+  'ai_usage_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    queueName: text('queue_name').notNull(),
+    jobId: uuid('job_id').references(() => dubbingJobs.id, {
+      onDelete: 'set null',
+    }),
+    provider: aiProviderEnum('provider').notNull(),
+    operation: aiOperationEnum('operation').notNull(),
+    model: text('model'),
+    billableUnit: aiBillableUnitEnum('billable_unit').notNull(),
+    billableQuantity: integer('billable_quantity').notNull(),
+    currency: aiCurrencyEnum('currency'),
+    rateMicros: bigint('rate_micros', { mode: 'number' }),
+    estimatedCostMicros: bigint('estimated_cost_micros', { mode: 'number' }),
+    metadataJson: text('metadata_json'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('ai_usage_events_queue_created_idx').on(table.queueName, table.createdAt),
+    index('ai_usage_events_job_idx').on(table.jobId),
+    index('ai_usage_events_provider_created_idx').on(table.provider, table.createdAt),
+  ],
+)
