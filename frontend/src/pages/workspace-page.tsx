@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { AudioWaveform, LoaderCircle, LogOut } from "lucide-react";
+import { LoaderCircle, LogOut } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DubbingForm } from "@/features/dubbing/dubbing-form";
 import { DubbingJobsTable } from "@/features/dubbing/dubbing-jobs-table";
 import { authClient } from "@/lib/auth-client";
+import { Brand } from "./landing-page";
 
 export function WorkspacePage() {
   const navigate = useNavigate();
@@ -25,24 +26,12 @@ export function WorkspacePage() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <header className="border-b border-(--color-border) bg-white/88 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-5 py-3 md:px-8">
-          <Link className="flex items-center gap-3" to="/">
-            <span className="flex size-8 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
-              <AudioWaveform className="size-4" />
-            </span>
-            <span>
-              <span className="block font-serif text-xl leading-none">
-                DubStudio AI
-              </span>
-              <span className="mt-0.5 block font-mono text-[11px] text-(--color-muted)">
-                workspace
-              </span>
-            </span>
-          </Link>
+      <header className="border-b border-(--color-border) bg-(--color-bg)">
+        <div className="mx-auto flex h-14 max-w-[960px] items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-3"><Brand /><span className="border-l border-(--color-border) pl-3 text-xs text-(--color-text-dim)">Workspace</span></div>
 
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm font-semibold text-(--color-text) transition hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 px-1 text-xs font-medium text-(--color-text-dim) transition hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSigningOut}
             onClick={handleSignOut}
             type="button"
@@ -50,14 +39,14 @@ export function WorkspacePage() {
             {isSigningOut ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              <LogOut className="size-4" />
+              <LogOut className="size-3.5" />
             )}
             Sign out
           </button>
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-5 px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto flex max-w-[960px] flex-col gap-10 px-4 py-7 sm:px-6 sm:py-9">
         <section>
           <DubbingForm />
         </section>

@@ -42,7 +42,7 @@ export function DialogContent({
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-5 rounded-lg border border-(--color-border) bg-(--color-surface) p-5 text-(--color-text) shadow-[0_28px_80px_rgba(21,23,19,0.24)] outline-none sm:p-6',
+          'fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-5 border border-(--color-border) bg-(--color-surface) p-5 text-(--color-text) shadow-[0_22px_64px_rgba(23,24,22,0.18)] outline-none sm:p-6',
           className,
         )}
         {...props}

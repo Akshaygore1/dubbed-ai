@@ -163,54 +163,27 @@ export function DubbingForm() {
   };
 
   return (
-    <form
-      className="w-full rounded-lg border border-(--color-text) bg-(--color-surface) p-4 shadow-[6px_6px_0_rgba(21,23,19,0.09)] md:p-5"
-      onSubmit={handleSubmit(onSubmit)}
-    >
+    <form className="w-full border border-(--color-border) bg-(--color-surface)" onSubmit={handleSubmit(onSubmit)}>
       <DubbingFormHeader />
-      <VideoUploadDropzone
-        inputId={inputId}
-        videoFile={videoFile}
-        isDragging={isDragging}
-        fileError={fileError}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onFileSelect={handleFileSelect}
-        onClearFile={clearFile}
-      />
-      <TargetLanguageField
-        control={control}
-        error={errors.targetLanguage}
-        disabled={mutation.isPending}
-      />
-      <AdvancedLanguageSettings
-        control={control}
-        error={errors.sourceLanguage}
-        disabled={mutation.isPending}
-        showAdvanced={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
-      />
-      <SubmitButton isPending={mutation.isPending} />
+      <div className="grid border-t border-(--color-border) md:grid-cols-[1.08fr_0.92fr]">
+        <VideoUploadDropzone inputId={inputId} videoFile={videoFile} isDragging={isDragging} fileError={fileError} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileSelect={handleFileSelect} onClearFile={clearFile} />
+        <div className="flex flex-col border-t border-(--color-border) md:border-l md:border-t-0">
+          <TargetLanguageField control={control} error={errors.targetLanguage} disabled={mutation.isPending} />
+          <AdvancedLanguageSettings control={control} error={errors.sourceLanguage} disabled={mutation.isPending} showAdvanced={showAdvanced} onToggle={() => setShowAdvanced((value) => !value)} />
+          <div className="mt-auto flex justify-end border-t border-(--color-border) p-3">
+            <SubmitButton isPending={mutation.isPending} />
+          </div>
+        </div>
+      </div>
     </form>
   );
 }
 
 function DubbingFormHeader() {
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <p className="font-mono text-xs font-semibold text-(--color-blue)">
-          New dubbing job
-        </p>
-        <h1 className="mt-2 font-serif text-3xl leading-tight text-(--color-text) md:text-4xl">
-          Upload video
-        </h1>
-      </div>
-      <div className="inline-flex w-fit items-center gap-2 rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 font-mono text-xs text-(--color-text-dim)">
-        <UploadCloud className="size-3.5 text-(--color-blue)" />
-        MP4 MOV WebM / Max 50 MB
-      </div>
+    <div className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <h1 className="text-sm font-semibold text-(--color-text)">New dubbing job</h1>
+      <p className="text-xs text-(--color-text-dim)">MP4, MOV or WebM · 50 MB max</p>
     </div>
   );
 }
@@ -239,17 +212,17 @@ function VideoUploadDropzone({
   onClearFile,
 }: VideoUploadDropzoneProps) {
   return (
-    <div className="mb-4">
+    <div>
       <div
         className={cn(
-          "relative flex min-h-36 items-center justify-center overflow-hidden rounded-md border border-dashed px-4 py-5 text-center transition sm:min-h-40",
-          isDragging && "border-(--color-blue) bg-blue-50",
+          "relative flex min-h-40 items-center justify-center overflow-hidden px-4 py-5 text-center transition sm:min-h-44",
+          isDragging && "border-(--color-accent) bg-[#eef0f6]",
           videoFile &&
             !isDragging &&
-            "border-(--color-blue) bg-(--color-panel)",
+            "border-(--color-text) bg-(--color-panel)",
           !videoFile &&
             !isDragging &&
-            "border-(--color-border) bg-(--color-bg) hover:border-(--color-text)",
+            "bg-(--color-surface) hover:bg-(--color-panel)",
         )}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -272,13 +245,11 @@ function VideoUploadDropzone({
           onChange={onFileSelect}
         />
       </div>
-      <div className="flex min-h-6 items-center pt-1">
+      <div className="flex min-h-8 items-center border-t border-(--color-border) px-3 py-1.5">
         {fileError ? (
           <p className="text-sm text-red-600">{fileError}</p>
         ) : (
-          <span className="font-mono text-xs text-[var(--color-text-dim)]">
-            Video file
-          </span>
+          <span className="text-xs text-[var(--color-text-dim)]">Choose one source video</span>
         )}
       </div>
     </div>
@@ -287,16 +258,14 @@ function VideoUploadDropzone({
 
 function EmptyVideoDropzone() {
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex size-11 items-center justify-center rounded-md border border-[var(--color-border)] bg-white text-[var(--color-blue)]">
-        <UploadCloud className="size-5" />
-      </div>
+    <div className="flex flex-col items-center gap-2">
+      <UploadCloud className="size-4 text-[var(--color-text-dim)]" />
       <div>
-        <p className="text-base font-semibold text-[var(--color-text)]">
-          Drag a video here, or click to browse.
+        <p className="text-sm font-medium text-[var(--color-text)]">
+          Drop a video or browse
         </p>
-        <p className="mt-1 text-sm text-[var(--color-text-dim)]">
-          Start with the target language below.
+        <p className="mt-1 text-xs text-[var(--color-text-dim)]">
+          The original file stays unchanged
         </p>
       </div>
     </div>
@@ -311,23 +280,18 @@ function SelectedVideoFile({
   onClearFile: () => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2">
-      <div className="flex size-11 items-center justify-center rounded-md border border-(--color-blue) bg-white text-(--color-blue)">
-        <Film className="size-5" />
+    <div className="flex min-w-0 max-w-[80%] items-center gap-3 text-left">
+      <div className="flex size-9 shrink-0 items-center justify-center border border-(--color-border) bg-white text-(--color-text-dim)">
+        <Film className="size-4" />
       </div>
-      <span className="max-w-full truncate text-base font-semibold text-(--color-text)">
-        {videoFile.name}
-      </span>
-      <span className="font-mono text-xs text-[var(--color-text-dim)]">
-        {(videoFile.size / 1024 / 1024).toFixed(2)} MB
-      </span>
+      <div className="min-w-0"><p className="truncate text-sm font-medium text-(--color-text)">{videoFile.name}</p><p className="mt-0.5 text-xs text-[var(--color-text-dim)]">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p></div>
       <button
         type="button"
-        className="absolute right-3 top-3 z-10 rounded-md border border-[var(--color-border)] bg-white p-2 text-[var(--color-text-dim)] transition hover:border-[var(--color-text)] hover:text-[var(--color-text)]"
+        className="absolute right-2 top-2 z-10 flex size-8 items-center justify-center text-[var(--color-text-dim)] transition hover:text-[var(--color-text)]"
         onClick={onClearFile}
       >
         <span className="sr-only">Remove selected video</span>
-        <X className="size-4" />
+        <X className="size-3.5" />
       </button>
     </div>
   );
@@ -343,12 +307,12 @@ function TargetLanguageField({
   disabled: boolean;
 }) {
   return (
-    <div className="mb-4">
+    <div className="px-3 py-3">
       <label
-        className="mb-2 flex items-center gap-2 font-mono text-xs font-semibold text-[var(--color-text-dim)]"
+        className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-dim)]"
         htmlFor="targetLanguage"
       >
-        <Languages className="size-3.5 text-(--color-blue)" />
+        <Languages className="size-3.5" />
         Target language
       </label>
       <Controller
@@ -390,14 +354,14 @@ function AdvancedLanguageSettings({
   onToggle: () => void;
 }) {
   return (
-    <div className="mb-5 rounded-md border border-(--color-border) bg-(--color-bg)">
+    <div className="border-t border-(--color-border)">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm font-semibold text-(--color-text)"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-xs font-medium text-(--color-text)"
         onClick={onToggle}
         aria-expanded={showAdvanced}
       >
-        <span>Advanced</span>
+        <span>Source language <span className="ml-1 font-normal text-(--color-text-dim)">{showAdvanced ? "" : "Auto-detect"}</span></span>
         <ChevronDown
           className={cn(
             "size-4 text-(--color-text-dim) transition",
@@ -409,9 +373,7 @@ function AdvancedLanguageSettings({
       {showAdvanced ? (
         <SourceLanguageField control={control} error={error} disabled={disabled} />
       ) : (
-        <p className="border-t border-(--color-border) px-3 pb-3 pt-2 text-sm text-(--color-text-dim)">
-          Source language is set to auto-detect.
-        </p>
+        null
       )}
     </div>
   );
@@ -427,9 +389,9 @@ function SourceLanguageField({
   disabled: boolean;
 }) {
   return (
-    <div className="border-t border-(--color-border) px-3 pb-3 pt-2">
+    <div className="border-t border-(--color-border) px-3 py-3">
       <label
-        className="mb-2 block font-mono text-xs font-semibold text-[var(--color-text-dim)]"
+        className="mb-1.5 block text-xs font-medium text-[var(--color-text-dim)]"
         htmlFor="sourceLanguage"
       >
         Source language
@@ -465,7 +427,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     <button
       type="submit"
       disabled={isPending}
-      className="w-full rounded-md border border-[var(--color-text)] bg-[var(--color-accent)] px-4 py-3.5 text-sm font-semibold text-[var(--color-accent-text)] transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-9 items-center justify-center bg-[var(--color-text)] px-4 text-xs font-semibold text-[var(--color-surface)] transition hover:bg-[#30302c] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isPending ? (
         <span className="flex items-center justify-center gap-2">

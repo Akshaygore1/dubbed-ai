@@ -1,15 +1,14 @@
 import {
   ArrowLeft,
-  AudioWaveform,
   LoaderCircle,
   Lock,
   Mail,
   User,
-  UserPlus,
 } from "lucide-react";
 import { type FormEvent, useReducer } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
+import { Brand } from "@/pages/landing-page";
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -100,34 +99,27 @@ export function AuthPanel() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <section className="mx-auto grid min-h-screen max-w-7xl gap-8 px-5 py-6 md:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
-        <div className="flex flex-col justify-between rounded-lg border border-(--color-border) bg-[linear-gradient(145deg,#f7faf2_0%,#dceccc_100%)] p-5 md:p-7">
+      <section className="mx-auto grid min-h-screen max-w-5xl gap-10 px-5 py-5 md:px-8 lg:grid-cols-[0.9fr_0.8fr] lg:items-center">
+        <div className="flex min-h-[22rem] flex-col justify-between border-b border-(--color-border) py-6 lg:min-h-[34rem] lg:border-b-0 lg:border-r lg:py-0 lg:pr-12">
           <div className="flex items-center justify-between gap-4">
-            <Link className="flex items-center gap-3" to="/">
-              <span className="flex size-9 items-center justify-center rounded-md border border-(--color-text) bg-(--color-accent) text-(--color-accent-text)">
-                <AudioWaveform className="size-5" />
-              </span>
-              <span className="font-serif text-2xl leading-none">
-                DubStudio AI
-              </span>
-            </Link>
+            <Brand />
           </div>
 
-          <div className="my-16 max-w-2xl lg:my-0">
-            <p className="font-mono text-xs font-semibold text-(--color-blue)">
+          <div className="my-12 max-w-xl lg:my-0">
+            <p className="ui-eyebrow">
               Account access
             </p>
-            <h1 className="mt-4 font-serif text-6xl leading-none md:text-7xl">
+            <h1 className="mt-4 font-serif text-5xl leading-[0.98] tracking-[-0.035em] md:text-6xl">
               Keep each dubbing job tied to your studio.
             </h1>
-            <p className="mt-6 max-w-lg text-lg leading-8 text-(--color-text-dim)">
+            <p className="mt-5 max-w-md leading-7 text-(--color-text-dim)">
               Uploads, processing status, and download links stay private to
               your signed-in workspace.
             </p>
           </div>
 
           <Link
-            className="inline-flex w-fit items-center gap-2 rounded-md border border-(--color-border) bg-white px-3 py-2 text-sm font-semibold transition hover:border-(--color-text)"
+            className="ui-button ui-button-secondary w-fit"
             to="/"
           >
             <ArrowLeft className="size-4" />
@@ -136,20 +128,17 @@ export function AuthPanel() {
         </div>
 
         <form
-          className="self-center rounded-lg border border-(--color-text) bg-(--color-surface) p-5 shadow-[8px_8px_0_rgba(21,23,19,0.12)] md:p-6"
+          className="ui-panel self-center p-5 md:p-7"
           onSubmit={handleSubmit}
         >
-          <div className="mb-8 flex items-start justify-between gap-4">
+          <div className="mb-8">
             <div>
-              <p className="font-mono text-xs font-semibold text-(--color-blue)">
+              <p className="ui-eyebrow">
                 {copy.eyebrow}
               </p>
-              <h2 className="mt-3 font-serif text-3xl text-(--color-text)">
+              <h2 className="mt-3 font-serif text-3xl tracking-[-0.02em] text-(--color-text)">
                 {copy.title}
               </h2>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-md border border-(--color-border) bg-(--color-panel) text-(--color-blue)">
-              <UserPlus className="size-4" />
             </div>
           </div>
 
@@ -159,7 +148,7 @@ export function AuthPanel() {
                 <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                   Name
                 </span>
-                <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
+                <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue) focus-within:ring-2 focus-within:ring-blue-100">
                   <User className="size-4 shrink-0 text-(--color-text-dim)" />
                   <input
                     aria-label="Name"
@@ -177,7 +166,7 @@ export function AuthPanel() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Email
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue) focus-within:ring-2 focus-within:ring-blue-100">
                 <Mail className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
                   aria-label="Email"
@@ -195,7 +184,7 @@ export function AuthPanel() {
               <span className="mb-2 block font-mono text-xs font-semibold text-(--color-text-dim)">
                 Password
               </span>
-              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue)">
+              <span className="flex items-center gap-3 rounded-md border border-(--color-border) bg-(--color-bg) p-3 focus-within:border-(--color-blue) focus-within:ring-2 focus-within:ring-blue-100">
                 <Lock className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
                   aria-label="Password"
@@ -223,7 +212,7 @@ export function AuthPanel() {
           ) : null}
 
           <button
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-(--color-text) bg-(--color-accent) px-4 py-3 text-sm font-semibold text-(--color-accent-text) transition hover:bg-(--color-accent-hover) disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-button ui-button-primary mt-8 flex w-full disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting}
             type="submit"
           >
@@ -232,7 +221,7 @@ export function AuthPanel() {
           </button>
 
           <button
-            className="mt-4 w-full rounded-md px-3 py-2 text-center text-sm font-semibold text-(--color-text-dim) transition hover:bg-(--color-panel) hover:text-(--color-text)"
+            className="mt-4 w-full rounded-md px-3 py-2 text-center text-sm font-semibold text-(--color-text-dim) transition hover:text-(--color-text)"
             onClick={switchMode}
             type="button"
           >
