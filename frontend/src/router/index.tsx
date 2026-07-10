@@ -2,7 +2,6 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/ui/app-shell'
 import { LandingPage } from '@/pages/landing-page'
 import {
-  AdminLoginRoute,
   AdminUsersRoute,
   AuthRoute,
   PendingRoute,
@@ -31,12 +30,13 @@ export const router = createBrowserRouter([
         element: <PendingRoute />,
       },
       {
-        path: 'admin/login',
-        element: <AdminLoginRoute />,
-      },
-      {
         path: 'admin/users',
         element: <AdminUsersRoute />,
+      },
+      {
+        // Redirect old admin/login to auth
+        path: 'admin/login',
+        element: <Navigate to="/auth" replace />,
       },
       {
         path: '*',

@@ -89,7 +89,9 @@ describe('requireApprovedUser', () => {
       },
     ])
 
-    await expect(requireApprovedUser(req, res, next)).rejects.toMatchObject<HttpError>({
+    await expect(
+      requireApprovedUser(req, res, next),
+    ).rejects.toMatchObject<HttpError>({
       statusCode: 403,
       message: 'Account pending approval',
       details: {
@@ -106,7 +108,9 @@ describe('requireApprovedUser', () => {
 
     mocks.getSession.mockResolvedValue(null)
 
-    await expect(requireApprovedUser(req, res, next)).rejects.toMatchObject<HttpError>({
+    await expect(
+      requireApprovedUser(req, res, next),
+    ).rejects.toMatchObject<HttpError>({
       statusCode: 401,
       message: 'Authentication required',
     })

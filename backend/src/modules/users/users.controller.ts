@@ -16,6 +16,7 @@ export const getCurrentUser = async (_req: Request, res: Response) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       approvalStatus: user.approvalStatus,
       approvedAt: user.approvedAt,
     })

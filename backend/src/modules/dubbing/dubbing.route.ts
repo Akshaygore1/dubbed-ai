@@ -13,7 +13,11 @@ import {
 export const dubbingRouter = Router()
 
 dubbingRouter.use(asyncHandler(requireApprovedUser))
-dubbingRouter.post('/', uploadVideo.single('video'), asyncHandler(createDubbingJob))
+dubbingRouter.post(
+  '/',
+  uploadVideo.single('video'),
+  asyncHandler(createDubbingJob),
+)
 dubbingRouter.get('/', asyncHandler(listDubbingJobs))
 dubbingRouter.get('/:id/download', asyncHandler(downloadDubbingJobVideo))
 dubbingRouter.delete('/:id', asyncHandler(deleteDubbingJob))

@@ -4,17 +4,7 @@ import { z } from 'zod'
 import { env } from '../../config/env.js'
 import { db } from '../../db/client.js'
 import { user } from '../../db/schema.js'
-import {
-  clearAdminSessionCookie,
-  createAdminSessionToken,
-  setAdminSessionCookie,
-} from '../../lib/admin-session.js'
 import { HttpError } from '../../lib/http-error.js'
-
-const adminLoginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1),
-})
 
 const adminUserStatusSchema = z.enum(['pending', 'approved'])
 
@@ -27,36 +17,12 @@ const selectAdminUserFields = {
   approvedAt: user.approvedAt,
 }
 
-export const loginAdmin = async (req: Request, res: Response) => {
-  const payload = adminLoginSchema.parse(req.body)
-
-  if (payload.email !== env.ADMIN_EMAIL || payload.password !== env.ADMIN_PASSWORD) {
-    throw new HttpError(401, 'Invalid admin credentials')
-  }
-
-  const session = createAdminSessionToken()
-  setAdminSessionCookie(res, session)
-
-  res.json({
-    success: true,
-    data: {
-      email: env.ADMIN_EMAIL,
-      expiresAt: session.expiresAt,
-    },
-  })
-}
-
-export const logoutAdmin = async (_req: Request, res: Response) => {
-  clearAdminSessionCookie(res)
-  res.status(204).send()
-}
-
 export const getAdminSession = async (_req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
       email: res.locals.adminEmail,
-      expiresAt: res.locals.adminSessionExpiresAt,
+      role: 'admin',
     },
   })
 }
@@ -89,7 +55,7 @@ export const approveAdminUser = async (req: Request, res: Response) => {
     .set({
       approvalStatus: 'approved',
       approvedAt,
-      approvedBy: env.ADMIN_EMAIL,
+      approvedBy: res.locals.adminEmail, // using the admin's email who approved it
       updatedAt: approvedAt,
     })
     .where(and(eq(user.id, userId), eq(user.approvalStatus, 'pending')))

@@ -81,7 +81,7 @@ export function AuthPanel() {
         return;
       }
 
-      navigate("/workspace", { replace: true });
+      navigate("/auth", { replace: true });
     } catch {
       updateAuth({
         error: "Unable to authenticate. Check your details and try again.",

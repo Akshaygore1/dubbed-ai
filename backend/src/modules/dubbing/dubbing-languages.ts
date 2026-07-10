@@ -12,5 +12,7 @@ export const DUBBING_LANGUAGES = [
   { code: 'te-IN', name: 'Telugu' },
 ] as const
 
-export const DUBBING_LANGUAGE_CODES = DUBBING_LANGUAGES.map((language) => language.code)
+export const DUBBING_LANGUAGE_CODES = DUBBING_LANGUAGES.map(
+  (language) => language.code,
+)
 export const AUTO_SOURCE_LANGUAGE_CODE = 'auto'

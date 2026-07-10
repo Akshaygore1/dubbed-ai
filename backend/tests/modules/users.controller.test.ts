@@ -93,7 +93,9 @@ describe('getCurrentUser', () => {
   })
 
   it('throws when the authenticated user id is missing', async () => {
-    await expect(getCurrentUser({} as Request, createResponse(''))).rejects.toMatchObject<HttpError>({
+    await expect(
+      getCurrentUser({} as Request, createResponse('')),
+    ).rejects.toMatchObject<HttpError>({
       statusCode: 401,
       message: 'Authentication required',
     })

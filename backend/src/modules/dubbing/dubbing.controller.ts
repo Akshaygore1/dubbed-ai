@@ -72,10 +72,10 @@ const parseSegments = (value: string | null) => {
   }
 }
 
-const toDubbingJobResponse = async (
-  job: DubbingJobRow,
-) => {
-  const videoUrl = job.videoKey ? await getSignedVideoUrl(job.videoKey) : job.videoUrl
+const toDubbingJobResponse = async (job: DubbingJobRow) => {
+  const videoUrl = job.videoKey
+    ? await getSignedVideoUrl(job.videoKey)
+    : job.videoUrl
   const audioUrl = job.audioKey ? await getSignedObjectUrl(job.audioKey) : null
   const dubbedAudioUrl = job.dubbedAudioKey
     ? await getSignedObjectUrl(job.dubbedAudioKey)
@@ -170,14 +170,17 @@ export const createDubbingJob = async (req: Request, res: Response) => {
 
   const videoUrl = getStoredVideoUrl(videoKey)
 
-  const [job] = await db.insert(dubbingJobs).values({
-    userId,
-    videoUrl,
-    videoKey,
-    sourceLanguage: payload.sourceLanguage,
-    targetLanguage: payload.targetLanguage,
-    status: 'pending',
-  }).returning(selectDubbingJobFields)
+  const [job] = await db
+    .insert(dubbingJobs)
+    .values({
+      userId,
+      videoUrl,
+      videoKey,
+      sourceLanguage: payload.sourceLanguage,
+      targetLanguage: payload.targetLanguage,
+      status: 'pending',
+    })
+    .returning(selectDubbingJobFields)
 
   if (!job) {
     throw new HttpError(500, 'Failed to create dubbing job')
@@ -186,7 +189,8 @@ export const createDubbingJob = async (req: Request, res: Response) => {
   try {
     await publishDubbingJob({ jobId: job.id })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to enqueue dubbing job'
+    const message =
+      error instanceof Error ? error.message : 'Failed to enqueue dubbing job'
 
     await db
       .update(dubbingJobs)
@@ -270,12 +274,11 @@ export const deleteDubbingJob = async (req: Request, res: Response) => {
     throw new HttpError(409, 'Active jobs cannot be deleted')
   }
 
-  await deleteObjectsFromR2([
-    job.videoKey,
-    job.audioKey,
-    job.dubbedAudioKey,
-    job.dubbedVideoKey,
-  ].filter((key): key is string => typeof key === 'string' && key.length > 0))
+  await deleteObjectsFromR2(
+    [job.videoKey, job.audioKey, job.dubbedAudioKey, job.dubbedVideoKey].filter(
+      (key): key is string => typeof key === 'string' && key.length > 0,
+    ),
+  )
 
   await db
     .delete(dubbingJobs)

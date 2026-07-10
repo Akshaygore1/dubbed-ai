@@ -1,22 +1,27 @@
 import { z } from 'zod'
-import { AUTO_SOURCE_LANGUAGE_CODE, DUBBING_LANGUAGE_CODES } from './dubbing-languages.js'
+import {
+  AUTO_SOURCE_LANGUAGE_CODE,
+  DUBBING_LANGUAGE_CODES,
+} from './dubbing-languages.js'
 
 const sourceLanguageSchema = z
   .enum([AUTO_SOURCE_LANGUAGE_CODE, ...DUBBING_LANGUAGE_CODES])
   .default(AUTO_SOURCE_LANGUAGE_CODE)
 
-export const createDubbingSchema = z.object({
-  sourceLanguage: sourceLanguageSchema,
-  targetLanguage: z.enum(DUBBING_LANGUAGE_CODES),
-}).refine(
-  (value) =>
-    value.sourceLanguage === AUTO_SOURCE_LANGUAGE_CODE ||
-    value.sourceLanguage !== value.targetLanguage,
-  {
-    message: 'Source and target languages must be different',
-    path: ['targetLanguage'],
-  },
-)
+export const createDubbingSchema = z
+  .object({
+    sourceLanguage: sourceLanguageSchema,
+    targetLanguage: z.enum(DUBBING_LANGUAGE_CODES),
+  })
+  .refine(
+    (value) =>
+      value.sourceLanguage === AUTO_SOURCE_LANGUAGE_CODE ||
+      value.sourceLanguage !== value.targetLanguage,
+    {
+      message: 'Source and target languages must be different',
+      path: ['targetLanguage'],
+    },
+  )
 
 export const transcriptSegmentSchema = z.object({
   index: z.number().int().nonnegative(),

@@ -5,8 +5,6 @@ import {
   approveAdminUser,
   getAdminSession,
   listAdminUsers,
-  loginAdmin,
-  logoutAdmin,
 } from '../../src/modules/admin/admin.controller.js'
 
 const mocks = vi.hoisted(() => ({
@@ -21,9 +19,6 @@ const mocks = vi.hoisted(() => ({
   eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
   and: vi.fn((...conditions: unknown[]) => ({ conditions })),
   desc: vi.fn((column: unknown) => ({ column })),
-  createAdminSessionToken: vi.fn(),
-  setAdminSessionCookie: vi.fn(),
-  clearAdminSessionCookie: vi.fn(),
 }))
 
 vi.mock('../../src/config/env.js', () => ({
@@ -38,12 +33,6 @@ vi.mock('drizzle-orm', () => ({
   and: mocks.and,
   desc: mocks.desc,
   eq: mocks.eq,
-}))
-
-vi.mock('../../src/lib/admin-session.js', () => ({
-  createAdminSessionToken: mocks.createAdminSessionToken,
-  setAdminSessionCookie: mocks.setAdminSessionCookie,
-  clearAdminSessionCookie: mocks.clearAdminSessionCookie,
 }))
 
 type MockResponse = Response & {
@@ -91,61 +80,11 @@ const mockUpdateReturning = (rows: unknown[]) => {
 describe('admin controller', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.createAdminSessionToken.mockReturnValue({
-      token: 'signed-token',
-      expiresAt: new Date('2026-05-22T18:00:00.000Z'),
-    })
-  })
-
-  it('logs the admin in with valid env credentials', async () => {
-    const res = createResponse()
-
-    await loginAdmin(
-      {
-        body: {
-          email: 'admin@example.com',
-          password: 'supersecret-password',
-        },
-      } as Request,
-      res,
-    )
-
-    expect(mocks.setAdminSessionCookie).toHaveBeenCalledWith(
-      res,
-      expect.objectContaining({
-        token: 'signed-token',
-      }),
-    )
-    expect(res.json).toHaveBeenCalledWith({
-      success: true,
-      data: {
-        email: 'admin@example.com',
-        expiresAt: new Date('2026-05-22T18:00:00.000Z'),
-      },
-    })
-  })
-
-  it('rejects invalid admin credentials', async () => {
-    await expect(
-      loginAdmin(
-        {
-          body: {
-            email: 'admin@example.com',
-            password: 'wrong-password',
-          },
-        } as Request,
-        createResponse(),
-      ),
-    ).rejects.toMatchObject<HttpError>({
-      statusCode: 401,
-      message: 'Invalid admin credentials',
-    })
   })
 
   it('returns the current admin session', async () => {
     const res = createResponse()
     res.locals.adminEmail = 'admin@example.com'
-    res.locals.adminSessionExpiresAt = new Date('2026-05-22T18:00:00.000Z')
 
     await getAdminSession({} as Request, res)
 
@@ -153,19 +92,9 @@ describe('admin controller', () => {
       success: true,
       data: {
         email: 'admin@example.com',
-        expiresAt: new Date('2026-05-22T18:00:00.000Z'),
+        role: 'admin',
       },
     })
-  })
-
-  it('clears the admin cookie on logout', async () => {
-    const res = createResponse()
-
-    await logoutAdmin({} as Request, res)
-
-    expect(mocks.clearAdminSessionCookie).toHaveBeenCalledWith(res)
-    expect(res.status).toHaveBeenCalledWith(204)
-    expect(res.send).toHaveBeenCalled()
   })
 
   it('lists users filtered by pending status', async () => {
@@ -234,6 +163,7 @@ describe('admin controller', () => {
 
   it('approves a pending user and records approval metadata', async () => {
     const res = createResponse()
+    res.locals.adminEmail = 'admin@example.com'
     const update = mockUpdateReturning([
       {
         id: 'user_123',

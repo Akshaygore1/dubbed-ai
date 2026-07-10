@@ -43,7 +43,9 @@ describe('requireAuth', () => {
     await requireAuth(req, res, next)
 
     expect(mocks.fromNodeHeaders).toHaveBeenCalledWith(req.headers)
-    expect(mocks.getSession).toHaveBeenCalledWith({ headers: expect.any(Headers) })
+    expect(mocks.getSession).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+    })
     expect(res.locals.userId).toBe('user_123')
     expect(next).toHaveBeenCalledOnce()
   })

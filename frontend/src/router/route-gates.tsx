@@ -1,9 +1,7 @@
 import { LoaderCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
-import { useAdminSession } from '@/features/admin/use-admin-session'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { authClient } from '@/lib/auth-client'
-import { AdminLoginPage } from '@/pages/admin-login-page'
 import { AdminUsersPage } from '@/pages/admin-users-page'
 import { AuthPage } from '@/pages/auth-page'
 import { PendingPage } from '@/pages/pending-page'
@@ -29,7 +27,12 @@ export function AuthRoute() {
   }
 
   if (currentUser.isError || !currentUser.data) {
-    return <Navigate to="/auth" replace />
+    return <AuthPage />
+  }
+
+  // Admin users go to the admin panel
+  if (currentUser.data.role === 'admin') {
+    return <Navigate to="/admin/users" replace />
   }
 
   if (currentUser.data.approvalStatus === 'approved') {
@@ -95,29 +98,27 @@ export function PendingRoute() {
   return <PendingPage />
 }
 
-export function AdminLoginRoute() {
-  const adminSession = useAdminSession()
-
-  if (adminSession.isLoading) {
-    return <RouteLoader label="Opening admin portal" />
-  }
-
-  if (adminSession.data) {
-    return <Navigate to="/admin/users" replace />
-  }
-
-  return <AdminLoginPage />
-}
-
 export function AdminUsersRoute() {
-  const adminSession = useAdminSession()
+  const session = authClient.useSession()
+  const currentUser = useCurrentUser({
+    enabled: Boolean(session.data),
+    refetchInterval: false,
+  })
 
-  if (adminSession.isLoading) {
+  if (session.isPending) {
     return <RouteLoader label="Loading admin portal" />
   }
 
-  if (adminSession.isError || !adminSession.data) {
-    return <Navigate to="/admin/login" replace />
+  if (!session.data) {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (currentUser.isLoading) {
+    return <RouteLoader label="Loading admin portal" />
+  }
+
+  if (currentUser.isError || !currentUser.data || currentUser.data.role !== 'admin') {
+    return <Navigate to="/auth" replace />
   }
 
   return <AdminUsersPage />

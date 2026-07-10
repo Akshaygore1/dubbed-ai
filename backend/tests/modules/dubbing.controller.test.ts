@@ -158,9 +158,15 @@ describe('dubbing controller', () => {
     vi.clearAllMocks()
     mocks.createVideoObjectKey.mockReturnValue('videos/generated-input.mp4')
     mocks.getStoredVideoUrl.mockReturnValue('r2://videos/generated-input.mp4')
-    mocks.getSignedObjectDownloadUrl.mockResolvedValue('https://cdn.test/dubbed/output.mp4?download=1')
-    mocks.getSignedVideoUrl.mockResolvedValue('https://cdn.test/videos/input.mp4')
-    mocks.getSignedObjectUrl.mockImplementation(async (key: string) => `https://cdn.test/${key}`)
+    mocks.getSignedObjectDownloadUrl.mockResolvedValue(
+      'https://cdn.test/dubbed/output.mp4?download=1',
+    )
+    mocks.getSignedVideoUrl.mockResolvedValue(
+      'https://cdn.test/videos/input.mp4',
+    )
+    mocks.getSignedObjectUrl.mockImplementation(
+      async (key: string) => `https://cdn.test/${key}`,
+    )
     mocks.deleteObjectsFromR2.mockResolvedValue(undefined)
     mocks.uploadVideoToR2.mockResolvedValue(undefined)
     mocks.publishDubbingJob.mockResolvedValue(undefined)
@@ -193,7 +199,9 @@ describe('dubbing controller', () => {
         targetLanguage: 'hi-IN',
         status: 'pending',
       })
-      expect(mocks.publishDubbingJob).toHaveBeenCalledWith({ jobId: baseJob.id })
+      expect(mocks.publishDubbingJob).toHaveBeenCalledWith({
+        jobId: baseJob.id,
+      })
       expect(res.status).toHaveBeenCalledWith(201)
       expect(res.json).toHaveBeenCalledWith({
         success: true,
@@ -209,7 +217,9 @@ describe('dubbing controller', () => {
     })
 
     it('throws a 401 when the authenticated user id is missing', async () => {
-      await expect(createDubbingJob(createVideoRequest(), createResponse(''))).rejects.toMatchObject<HttpError>({
+      await expect(
+        createDubbingJob(createVideoRequest(), createResponse('')),
+      ).rejects.toMatchObject<HttpError>({
         statusCode: 401,
         message: 'Authentication required',
       })
@@ -223,7 +233,9 @@ describe('dubbing controller', () => {
         },
       } as Request
 
-      await expect(createDubbingJob(req, createResponse())).rejects.toMatchObject<HttpError>({
+      await expect(
+        createDubbingJob(req, createResponse()),
+      ).rejects.toMatchObject<HttpError>({
         statusCode: 400,
         message: 'Video file is required',
       })
@@ -234,7 +246,9 @@ describe('dubbing controller', () => {
       mockInsertReturning([baseJob])
       mocks.publishDubbingJob.mockRejectedValue(new Error('queue unavailable'))
 
-      await expect(createDubbingJob(createVideoRequest(), createResponse())).rejects.toMatchObject<HttpError>({
+      await expect(
+        createDubbingJob(createVideoRequest(), createResponse()),
+      ).rejects.toMatchObject<HttpError>({
         statusCode: 500,
         message: 'Failed to enqueue dubbing job',
       })
@@ -301,8 +315,15 @@ describe('dubbing controller', () => {
       await listDubbingJobs({} as Request, res)
 
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
-      expect(query.where).toHaveBeenCalledWith({ op: 'eq', column: dubbingJobs.userId, value: 'user_123' })
-      expect(query.orderBy).toHaveBeenCalledWith({ op: 'desc', column: dubbingJobs.createdAt })
+      expect(query.where).toHaveBeenCalledWith({
+        op: 'eq',
+        column: dubbingJobs.userId,
+        value: 'user_123',
+      })
+      expect(query.orderBy).toHaveBeenCalledWith({
+        op: 'desc',
+        column: dubbingJobs.createdAt,
+      })
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         data: [
@@ -323,7 +344,10 @@ describe('dubbing controller', () => {
       const query = mockSelectWhere([baseJob])
       const res = createResponse()
 
-      await getDubbingJob({ params: { id: baseJob.id } } as unknown as Request, res)
+      await getDubbingJob(
+        { params: { id: baseJob.id } } as unknown as Request,
+        res,
+      )
 
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
@@ -344,7 +368,9 @@ describe('dubbing controller', () => {
     })
 
     it('throws a 400 when the job id param is missing', async () => {
-      await expect(getDubbingJob({ params: {} } as Request, createResponse())).rejects.toMatchObject<HttpError>({
+      await expect(
+        getDubbingJob({ params: {} } as Request, createResponse()),
+      ).rejects.toMatchObject<HttpError>({
         statusCode: 400,
         message: 'Job id is required',
       })
@@ -354,7 +380,10 @@ describe('dubbing controller', () => {
       mockSelectWhere([])
 
       await expect(
-        getDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        getDubbingJob(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 404,
         message: 'Job not found',
@@ -365,7 +394,10 @@ describe('dubbing controller', () => {
   describe('downloadDubbingJobVideo', () => {
     it('throws a 401 when the authenticated user id is missing', async () => {
       await expect(
-        downloadDubbingJobVideo({ params: { id: baseJob.id } } as unknown as Request, createResponse('')),
+        downloadDubbingJobVideo(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(''),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 401,
         message: 'Authentication required',
@@ -381,7 +413,10 @@ describe('dubbing controller', () => {
       const res = createResponse()
       mockSelectWhere([completedJob])
 
-      await downloadDubbingJobVideo({ params: { id: baseJob.id } } as unknown as Request, res)
+      await downloadDubbingJobVideo(
+        { params: { id: baseJob.id } } as unknown as Request,
+        res,
+      )
 
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
       expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
@@ -389,14 +424,19 @@ describe('dubbing controller', () => {
         'dubbed/output.mp4',
         `dubbed-video-${baseJob.id}.mp4`,
       )
-      expect(res.redirect).toHaveBeenCalledWith('https://cdn.test/dubbed/output.mp4?download=1')
+      expect(res.redirect).toHaveBeenCalledWith(
+        'https://cdn.test/dubbed/output.mp4?download=1',
+      )
     })
 
     it('throws a 404 when no scoped job is found for download', async () => {
       mockSelectWhere([])
 
       await expect(
-        downloadDubbingJobVideo({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        downloadDubbingJobVideo(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 404,
         message: 'Job not found',
@@ -407,7 +447,10 @@ describe('dubbing controller', () => {
       mockSelectWhere([baseJob])
 
       await expect(
-        downloadDubbingJobVideo({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        downloadDubbingJobVideo(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 409,
         message: 'Dubbed video is not ready for download',
@@ -428,7 +471,10 @@ describe('dubbing controller', () => {
       const deleteQuery = mockDeleteWhere()
       const res = createResponse()
 
-      await deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, res)
+      await deleteDubbingJob(
+        { params: { id: baseJob.id } } as unknown as Request,
+        res,
+      )
 
       expect(query.where).toHaveBeenCalledWith({
         op: 'and',
@@ -466,7 +512,10 @@ describe('dubbing controller', () => {
       mockDeleteWhere()
       const res = createResponse()
 
-      await deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, res)
+      await deleteDubbingJob(
+        { params: { id: baseJob.id } } as unknown as Request,
+        res,
+      )
 
       expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([])
       expect(mocks.db.delete).toHaveBeenCalledWith(dubbingJobs)
@@ -477,7 +526,10 @@ describe('dubbing controller', () => {
       mockSelectWhere([])
 
       await expect(
-        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        deleteDubbingJob(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 404,
         message: 'Job not found',
@@ -491,7 +543,10 @@ describe('dubbing controller', () => {
       mockSelectWhere([baseJob])
 
       await expect(
-        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        deleteDubbingJob(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toMatchObject<HttpError>({
         statusCode: 409,
         message: 'Active jobs cannot be deleted',
@@ -511,7 +566,10 @@ describe('dubbing controller', () => {
       mocks.deleteObjectsFromR2.mockRejectedValue(new Error('r2 unavailable'))
 
       await expect(
-        deleteDubbingJob({ params: { id: baseJob.id } } as unknown as Request, createResponse()),
+        deleteDubbingJob(
+          { params: { id: baseJob.id } } as unknown as Request,
+          createResponse(),
+        ),
       ).rejects.toThrow('r2 unavailable')
 
       expect(mocks.db.delete).not.toHaveBeenCalled()

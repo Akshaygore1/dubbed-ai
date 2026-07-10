@@ -47,7 +47,12 @@ describe('errorHandler', () => {
     const res = createResponse()
     const details = { reason: 'missing-session' }
 
-    errorHandler(new HttpError(401, 'Authentication required', details), {} as never, res, undefined)
+    errorHandler(
+      new HttpError(401, 'Authentication required', details),
+      {} as never,
+      res,
+      undefined,
+    )
 
     expect(res.status).toHaveBeenCalledWith(401)
     expect(res.json).toHaveBeenCalledWith({
@@ -60,7 +65,12 @@ describe('errorHandler', () => {
   it('returns a file size response for oversized uploads', () => {
     const res = createResponse()
 
-    errorHandler(new multer.MulterError('LIMIT_FILE_SIZE'), {} as never, res, undefined)
+    errorHandler(
+      new multer.MulterError('LIMIT_FILE_SIZE'),
+      {} as never,
+      res,
+      undefined,
+    )
 
     expect(res.status).toHaveBeenCalledWith(413)
     expect(res.json).toHaveBeenCalledWith({
@@ -71,7 +81,9 @@ describe('errorHandler', () => {
 
   it('logs unknown errors and returns a generic 500 response', () => {
     const res = createResponse()
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     const error = new Error('database exploded')
 
     errorHandler(error, {} as never, res, undefined)

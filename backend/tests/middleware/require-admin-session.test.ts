@@ -4,11 +4,23 @@ import { HttpError } from '../../src/lib/http-error.js'
 import { requireAdminSession } from '../../src/middleware/require-admin-session.js'
 
 const mocks = vi.hoisted(() => ({
-  readAdminSessionFromRequest: vi.fn(),
+  getAuthSession: vi.fn(),
+  db: {
+    select: vi.fn(),
+  },
+  eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
 }))
 
-vi.mock('../../src/lib/admin-session.js', () => ({
-  readAdminSessionFromRequest: mocks.readAdminSessionFromRequest,
+vi.mock('../../src/middleware/require-auth.js', () => ({
+  getAuthSession: mocks.getAuthSession,
+}))
+
+vi.mock('../../src/db/client.js', () => ({
+  db: mocks.db,
+}))
+
+vi.mock('drizzle-orm', () => ({
+  eq: mocks.eq,
 }))
 
 const createResponse = () =>
@@ -21,34 +33,44 @@ describe('requireAdminSession', () => {
     vi.clearAllMocks()
   })
 
-  it('stores admin session data and calls next', () => {
-    const req = { headers: { cookie: 'admin_session=value' } } as Request
+  it('stores admin session data and calls next', async () => {
+    const req = {} as Request
     const res = createResponse()
     const next = vi.fn() as NextFunction
-    const expiresAt = new Date('2026-05-22T10:00:00.000Z')
 
-    mocks.readAdminSessionFromRequest.mockReturnValue({
-      email: 'admin@example.com',
-      expiresAt,
+    mocks.getAuthSession.mockResolvedValue({
+      user: { id: 'admin-id' },
     })
 
-    requireAdminSession(req, res, next)
+    const where = vi.fn().mockResolvedValue([{ role: 'admin', email: 'admin@example.com' }])
+    const from = vi.fn(() => ({ where }))
+    mocks.db.select.mockReturnValue({ from })
+
+    await requireAdminSession(req, res, next)
 
     expect(res.locals.adminEmail).toBe('admin@example.com')
-    expect(res.locals.adminSessionExpiresAt).toBe(expiresAt)
+    expect(res.locals.userId).toBe('admin-id')
     expect(next).toHaveBeenCalledOnce()
   })
 
-  it('throws a 401 when no valid admin cookie exists', async () => {
-    const req = { headers: {} } as Request
+  it('throws a 403 when user is not an admin', async () => {
+    const req = {} as Request
     const res = createResponse()
     const next = vi.fn() as NextFunction
 
-    mocks.readAdminSessionFromRequest.mockReturnValue(null)
+    mocks.getAuthSession.mockResolvedValue({
+      user: { id: 'user-id' },
+    })
 
-    await expect(requireAdminSession(req, res, next)).rejects.toMatchObject<HttpError>({
-      statusCode: 401,
-      message: 'Admin authentication required',
+    const where = vi.fn().mockResolvedValue([{ role: 'user', email: 'user@example.com' }])
+    const from = vi.fn(() => ({ where }))
+    mocks.db.select.mockReturnValue({ from })
+
+    await expect(
+      requireAdminSession(req, res, next),
+    ).rejects.toMatchObject<HttpError>({
+      statusCode: 403,
+      message: 'Admin privileges required',
     })
     expect(next).not.toHaveBeenCalled()
   })

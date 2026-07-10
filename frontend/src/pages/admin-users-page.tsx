@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import {
   AudioWaveform,
   CheckCircle2,
@@ -7,8 +8,9 @@ import {
   UserRoundPlus,
 } from 'lucide-react'
 import { useState } from 'react'
-import { useAdminLogoutMutation } from '@/features/admin/use-admin-session'
+import { useNavigate } from 'react-router-dom'
 import { useAdminUsers, useApproveAdminUserMutation } from '@/features/admin/use-admin-users'
+import { authClient } from '@/lib/auth-client'
 
 const tabs = ['pending', 'approved'] as const
 
@@ -26,14 +28,23 @@ const formatDate = (value: string | null) => {
 }
 
 export function AdminUsersPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('pending')
   const { data: users = [], isLoading } = useAdminUsers(activeTab)
   const approveMutation = useApproveAdminUserMutation()
-  const logoutMutation = useAdminLogoutMutation()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync()
-    navigateToAdminLogin()
+    setIsSigningOut(true)
+
+    try {
+      await authClient.signOut()
+      queryClient.clear()
+      navigate('/auth', { replace: true })
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   return (
@@ -57,11 +68,11 @@ export function AdminUsersPage() {
 
           <button
             className="inline-flex items-center justify-center gap-2 rounded-md border border-(--color-border) bg-white px-4 py-3 text-sm font-semibold transition hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={logoutMutation.isPending}
+            disabled={isSigningOut}
             onClick={handleLogout}
             type="button"
           >
-            {logoutMutation.isPending ? (
+            {isSigningOut ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <LogOut className="size-4" />
@@ -163,8 +174,4 @@ export function AdminUsersPage() {
       </section>
     </main>
   )
-}
-
-function navigateToAdminLogin() {
-  window.location.assign('/admin/login')
 }

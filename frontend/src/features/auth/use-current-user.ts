@@ -5,6 +5,7 @@ export type CurrentUser = {
   id: string
   name: string
   email: string
+  role: 'user' | 'admin'
   approvalStatus: 'pending' | 'approved'
   approvedAt: string | null
 }
