@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express'
 import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { env } from '../../config/env.js'
 import { db } from '../../db/client.js'
 import { user } from '../../db/schema.js'
 import { HttpError } from '../../lib/http-error.js'

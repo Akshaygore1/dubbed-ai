@@ -108,8 +108,31 @@ export const jobStatusEnum = pgEnum('job_status', [
   'failed',
 ])
 
+export const sourceVideos = pgTable(
+  'source_videos',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    originalFilename: text('original_filename'),
+    displayTitle: text('display_title').notNull(),
+    sourceLanguage: text('source_language').notNull(),
+    videoUrl: text('video_url'),
+    videoKey: text('video_key'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('source_videos_user_id_idx').on(table.userId)],
+)
+
 export const dubbingJobs = pgTable('dubbing_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
+  sourceId: uuid('source_id').references(() => sourceVideos.id, {
+    onDelete: 'restrict',
+  }),
   userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
   videoUrl: text('video_url'),
   videoKey: text('video_key'),

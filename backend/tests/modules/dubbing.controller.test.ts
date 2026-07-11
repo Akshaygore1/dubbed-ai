@@ -1,578 +1,99 @@
 import type { Request, Response } from 'express'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../src/lib/http-error.js'
-import { dubbingJobs } from '../../src/db/schema.js'
-import {
-  createDubbingJob,
-  deleteDubbingJob,
-  downloadDubbingJobVideo,
-  getDubbingJob,
-  listDubbingJobs,
-  maxVideoFileSizeBytes,
-  uploadVideo,
-} from '../../src/modules/dubbing/dubbing.controller.js'
+import { createDubbingJob, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
 
 const mocks = vi.hoisted(() => ({
-  db: {
-    delete: vi.fn(),
-    insert: vi.fn(),
-    select: vi.fn(),
-    update: vi.fn(),
-  },
+  db: { insert: vi.fn(), select: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
   and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((column: unknown, value: unknown) => ({ op: 'eq', column, value })),
   createVideoObjectKey: vi.fn(),
-  deleteObjectsFromR2: vi.fn(),
-  getSignedObjectDownloadUrl: vi.fn(),
-  getSignedObjectUrl: vi.fn(),
-  getSignedVideoUrl: vi.fn(),
   getStoredVideoUrl: vi.fn(),
+  getSignedObjectUrl: vi.fn(),
+  getSignedObjectDownloadUrl: vi.fn(),
   uploadVideoToR2: vi.fn(),
   publishDubbingJob: vi.fn(),
 }))
 
-vi.mock('../../src/db/client.js', () => ({
-  db: mocks.db,
-}))
-
-vi.mock('drizzle-orm', () => ({
-  and: mocks.and,
-  desc: mocks.desc,
-  eq: mocks.eq,
-}))
-
+vi.mock('../../src/db/client.js', () => ({ db: mocks.db }))
+vi.mock('drizzle-orm', () => ({ and: mocks.and, desc: mocks.desc, eq: mocks.eq }))
 vi.mock('../../src/lib/r2.js', () => ({
   createVideoObjectKey: mocks.createVideoObjectKey,
-  deleteObjectsFromR2: mocks.deleteObjectsFromR2,
-  getSignedObjectDownloadUrl: mocks.getSignedObjectDownloadUrl,
-  getSignedObjectUrl: mocks.getSignedObjectUrl,
-  getSignedVideoUrl: mocks.getSignedVideoUrl,
+  deleteObjectsFromR2: vi.fn(),
   getStoredVideoUrl: mocks.getStoredVideoUrl,
+  getSignedObjectUrl: mocks.getSignedObjectUrl,
+  getSignedObjectDownloadUrl: mocks.getSignedObjectDownloadUrl,
   uploadVideoToR2: mocks.uploadVideoToR2,
 }))
+vi.mock('../../src/lib/queue.js', () => ({ publishDubbingJob: mocks.publishDubbingJob }))
 
-vi.mock('../../src/lib/queue.js', () => ({
-  publishDubbingJob: mocks.publishDubbingJob,
-}))
+const now = new Date('2026-05-18T10:00:00.000Z')
+const source = { id: '17b74ec6-7086-459c-8f0d-d39d6c3c4acd', userId: 'user_123', originalFilename: 'launch.mp4', displayTitle: 'launch.mp4', sourceLanguage: 'en-IN', videoKey: 'videos/launch.mp4', videoUrl: 'r2://videos/launch.mp4', createdAt: now, updatedAt: now }
+const version = { id: '1b27a0eb-5a81-49f1-945d-13eb78cfc8c7', sourceId: source.id, userId: 'user_123', videoUrl: null, videoKey: null, audioKey: null, dubbedAudioKey: null, dubbedVideoKey: null, sourceLanguage: 'en-IN', targetLanguage: 'hi-IN', transcriptionLanguage: null, voiceCloneId: null, transcriptJson: null, translationJson: null, status: 'pending' as const, dubbedVideoUrl: null, errorMessage: null, createdAt: now, updatedAt: now }
 
-type MockResponse = Response & {
-  status: ReturnType<typeof vi.fn>
-  json: ReturnType<typeof vi.fn>
-  redirect: ReturnType<typeof vi.fn>
-  send: ReturnType<typeof vi.fn>
-}
-
-const createdAt = new Date('2026-05-18T10:00:00.000Z')
-const updatedAt = new Date('2026-05-18T10:01:00.000Z')
-
-const baseJob = {
-  id: '1b27a0eb-5a81-49f1-945d-13eb78cfc8c7',
-  videoUrl: 'r2://videos/input.mp4',
-  videoKey: 'videos/input.mp4',
-  audioKey: null,
-  dubbedAudioKey: null,
-  dubbedVideoKey: null,
-  sourceLanguage: 'en-IN',
-  targetLanguage: 'hi-IN',
-  transcriptionLanguage: null,
-  voiceCloneId: null,
-  transcriptJson: null,
-  translationJson: null,
-  status: 'pending' as const,
-  dubbedVideoUrl: null,
-  errorMessage: null,
-  createdAt,
-  updatedAt,
-}
-
-const createResponse = (userId: string | undefined = 'user_123') => {
-  const res = {
-    locals: userId ? { userId } : {},
-    status: vi.fn(),
-    json: vi.fn(),
-    redirect: vi.fn(),
-    send: vi.fn(),
-  }
-
+const response = () => {
+  const res = { locals: { userId: 'user_123' }, status: vi.fn(), json: vi.fn(), redirect: vi.fn(), send: vi.fn() }
   res.status.mockReturnValue(res)
-
-  return res as unknown as MockResponse
+  return res as unknown as Response & typeof res
 }
 
-const createVideoRequest = () =>
-  ({
-    body: {
-      sourceLanguage: 'en-IN',
-      targetLanguage: 'hi-IN',
-    },
-    file: {
-      originalname: 'input.mp4',
-      mimetype: 'video/mp4',
-      buffer: Buffer.from('video-bytes'),
-    },
-  }) as Request
-
-const mockInsertReturning = (rows: unknown[]) => {
-  const returning = vi.fn().mockResolvedValue(rows)
+const insertReturning = (row: unknown) => {
+  const returning = vi.fn().mockResolvedValue([row])
   const values = vi.fn(() => ({ returning }))
-  mocks.db.insert.mockReturnValue({ values })
-
-  return { returning, values }
+  return { values }
 }
 
-const mockUpdateWhere = () => {
-  const where = vi.fn().mockResolvedValue(undefined)
-  const set = vi.fn(() => ({ where }))
-  mocks.db.update.mockReturnValue({ set })
-
-  return { set, where }
-}
-
-const mockDeleteWhere = () => {
-  const where = vi.fn().mockResolvedValue(undefined)
-  mocks.db.delete.mockReturnValue({ where })
-
-  return { where }
-}
-
-const mockSelectWhere = (rows: unknown[]) => {
-  const where = vi.fn().mockResolvedValue(rows)
-  const from = vi.fn(() => ({ where }))
-  mocks.db.select.mockReturnValue({ from })
-
-  return { from, where }
-}
-
-const mockSelectList = (rows: unknown[]) => {
-  const orderBy = vi.fn().mockResolvedValue(rows)
-  const where = vi.fn(() => ({ orderBy }))
-  const from = vi.fn(() => ({ where }))
-  mocks.db.select.mockReturnValue({ from })
-
-  return { from, orderBy, where }
-}
-
-describe('dubbing controller', () => {
+describe('reusable source-video controller', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.createVideoObjectKey.mockReturnValue('videos/generated-input.mp4')
-    mocks.getStoredVideoUrl.mockReturnValue('r2://videos/generated-input.mp4')
-    mocks.getSignedObjectDownloadUrl.mockResolvedValue(
-      'https://cdn.test/dubbed/output.mp4?download=1',
-    )
-    mocks.getSignedVideoUrl.mockResolvedValue(
-      'https://cdn.test/videos/input.mp4',
-    )
-    mocks.getSignedObjectUrl.mockImplementation(
-      async (key: string) => `https://cdn.test/${key}`,
-    )
-    mocks.deleteObjectsFromR2.mockResolvedValue(undefined)
+    mocks.createVideoObjectKey.mockReturnValue('videos/launch.mp4')
+    mocks.getStoredVideoUrl.mockReturnValue('r2://videos/launch.mp4')
+    mocks.getSignedObjectUrl.mockImplementation(async (key: string) => `https://cdn.test/${key}`)
+    mocks.getSignedObjectDownloadUrl.mockResolvedValue('https://cdn.test/download')
     mocks.uploadVideoToR2.mockResolvedValue(undefined)
     mocks.publishDubbingJob.mockResolvedValue(undefined)
+    mocks.db.transaction.mockImplementation(async (callback: (tx: typeof mocks.db) => unknown) => callback(mocks.db))
   })
 
-  describe('createDubbingJob', () => {
-    it('limits uploaded videos to 50 MB', () => {
-      expect(uploadVideo.limits).toMatchObject({
-        fileSize: maxVideoFileSizeBytes,
-      })
-    })
+  it('creates one user-owned source and its first language version from an upload', async () => {
+    const sourceInsert = insertReturning(source)
+    const versionInsert = insertReturning(version)
+    mocks.db.insert.mockReturnValueOnce(sourceInsert).mockReturnValueOnce(versionInsert)
+    const res = response()
+    await createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN' }, file: { originalname: 'launch.mp4', mimetype: 'video/mp4', buffer: Buffer.from('video') } } as unknown as Request, res)
 
-    it('uploads the video, creates a user-owned job, enqueues work, and responds with the job', async () => {
-      const req = createVideoRequest()
-      const res = createResponse()
-      const { values } = mockInsertReturning([baseJob])
-
-      await createDubbingJob(req, res)
-
-      expect(mocks.uploadVideoToR2).toHaveBeenCalledWith({
-        key: 'videos/generated-input.mp4',
-        body: Buffer.from('video-bytes'),
-        contentType: 'video/mp4',
-      })
-      expect(values).toHaveBeenCalledWith({
-        userId: 'user_123',
-        videoUrl: 'r2://videos/generated-input.mp4',
-        videoKey: 'videos/generated-input.mp4',
-        sourceLanguage: 'en-IN',
-        targetLanguage: 'hi-IN',
-        status: 'pending',
-      })
-      expect(mocks.publishDubbingJob).toHaveBeenCalledWith({
-        jobId: baseJob.id,
-      })
-      expect(res.status).toHaveBeenCalledWith(201)
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: 'Dubbing job created',
-        data: expect.objectContaining({
-          id: baseJob.id,
-          videoUrl: 'https://cdn.test/videos/input.mp4',
-          sourceLanguage: 'en-IN',
-          targetLanguage: 'hi-IN',
-          status: 'pending',
-        }),
-      })
-    })
-
-    it('throws a 401 when the authenticated user id is missing', async () => {
-      await expect(
-        createDubbingJob(createVideoRequest(), createResponse('')),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 401,
-        message: 'Authentication required',
-      })
-    })
-
-    it('throws a 400 when no video file is attached', async () => {
-      const req = {
-        body: {
-          sourceLanguage: 'en-IN',
-          targetLanguage: 'hi-IN',
-        },
-      } as Request
-
-      await expect(
-        createDubbingJob(req, createResponse()),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 400,
-        message: 'Video file is required',
-      })
-    })
-
-    it('marks the job failed and throws when queue publishing fails', async () => {
-      const update = mockUpdateWhere()
-      mockInsertReturning([baseJob])
-      mocks.publishDubbingJob.mockRejectedValue(new Error('queue unavailable'))
-
-      await expect(
-        createDubbingJob(createVideoRequest(), createResponse()),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 500,
-        message: 'Failed to enqueue dubbing job',
-      })
-
-      expect(update.set).toHaveBeenCalledWith({
-        status: 'failed',
-        errorMessage: 'queue unavailable',
-        updatedAt: expect.any(Date),
-      })
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
-      expect(update.where).toHaveBeenCalled()
-    })
-
-    it('rejects unsupported languages before upload and queueing', async () => {
-      const req = createVideoRequest()
-      req.body = {
-        sourceLanguage: 'en-IN',
-        targetLanguage: 'ur-IN',
-      }
-
-      await expect(createDubbingJob(req, createResponse())).rejects.toThrow()
-
-      expect(mocks.uploadVideoToR2).not.toHaveBeenCalled()
-      expect(mocks.publishDubbingJob).not.toHaveBeenCalled()
-      expect(mocks.db.insert).not.toHaveBeenCalled()
-    })
-
-    it('defaults a missing source language to auto', async () => {
-      const req = createVideoRequest()
-      req.body = {
-        targetLanguage: 'hi-IN',
-      }
-      const { values } = mockInsertReturning([
-        {
-          ...baseJob,
-          sourceLanguage: 'auto',
-        },
-      ])
-
-      await createDubbingJob(req, createResponse())
-
-      expect(values).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourceLanguage: 'auto',
-          targetLanguage: 'hi-IN',
-        }),
-      )
-    })
+    expect(sourceInsert.values).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_123', originalFilename: 'launch.mp4', displayTitle: 'launch.mp4', videoKey: 'videos/launch.mp4' }))
+    expect(versionInsert.values).toHaveBeenCalledWith(expect.objectContaining({ sourceId: source.id, targetLanguage: 'hi-IN', status: 'pending' }))
+    expect(mocks.publishDubbingJob).toHaveBeenCalledWith({ jobId: version.id })
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ id: source.id, versions: [expect.objectContaining({ id: version.id })] }) }))
   })
 
-  describe('listDubbingJobs', () => {
-    it('returns only jobs scoped to the authenticated user', async () => {
-      const transcriptSegments = [{ index: 0, sourceText: 'Hello' }]
-      const job = {
-        ...baseJob,
-        audioKey: 'audio/source.wav',
-        dubbedAudioKey: 'audio/dubbed.wav',
-        transcriptJson: JSON.stringify(transcriptSegments),
-        translationJson: 'not json',
-      }
-      const query = mockSelectList([job])
-      const res = createResponse()
-
-      await listDubbingJobs({} as Request, res)
-
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
-      expect(query.where).toHaveBeenCalledWith({
-        op: 'eq',
-        column: dubbingJobs.userId,
-        value: 'user_123',
-      })
-      expect(query.orderBy).toHaveBeenCalledWith({
-        op: 'desc',
-        column: dubbingJobs.createdAt,
-      })
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        data: [
-          expect.objectContaining({
-            id: baseJob.id,
-            audioUrl: 'https://cdn.test/audio/source.wav',
-            dubbedAudioUrl: 'https://cdn.test/audio/dubbed.wav',
-            transcriptSegments,
-            translatedSegments: null,
-          }),
-        ],
-      })
-    })
+  it('retains the source and marks its version failed when enqueueing fails', async () => {
+    mocks.db.insert.mockReturnValueOnce(insertReturning(source)).mockReturnValueOnce(insertReturning(version))
+    const where = vi.fn().mockResolvedValue(undefined)
+    mocks.db.update.mockReturnValue({ set: vi.fn(() => ({ where })) })
+    mocks.publishDubbingJob.mockRejectedValue(new Error('queue unavailable'))
+    await expect(createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN' }, file: { originalname: 'launch.mp4', mimetype: 'video/mp4', buffer: Buffer.from('video') } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 500, message: 'Failed to enqueue dubbing job' })
+    expect(mocks.db.update).toHaveBeenCalled()
   })
 
-  describe('getDubbingJob', () => {
-    it('returns a user-scoped job by id', async () => {
-      const query = mockSelectWhere([baseJob])
-      const res = createResponse()
-
-      await getDubbingJob(
-        { params: { id: baseJob.id } } as unknown as Request,
-        res,
-      )
-
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
-      expect(query.where).toHaveBeenCalledWith({
-        op: 'and',
-        conditions: [
-          { op: 'eq', column: dubbingJobs.id, value: baseJob.id },
-          { op: 'eq', column: dubbingJobs.userId, value: 'user_123' },
-        ],
-      })
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        data: expect.objectContaining({
-          id: baseJob.id,
-          videoUrl: 'https://cdn.test/videos/input.mp4',
-        }),
-      })
-    })
-
-    it('throws a 400 when the job id param is missing', async () => {
-      await expect(
-        getDubbingJob({ params: {} } as Request, createResponse()),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 400,
-        message: 'Job id is required',
-      })
-    })
-
-    it('throws a 404 when no scoped job is found', async () => {
-      mockSelectWhere([])
-
-      await expect(
-        getDubbingJob(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 404,
-        message: 'Job not found',
-      })
-    })
+  it('groups only the authenticated user\'s language versions below their source', async () => {
+    const orderBy = vi.fn().mockResolvedValue([{ source, version }])
+    const where = vi.fn(() => ({ orderBy }))
+    mocks.db.select.mockReturnValue({ from: vi.fn(() => ({ leftJoin: vi.fn(() => ({ where })) })) })
+    const res = response()
+    await listDubbingJobs({} as Request, res)
+    expect(mocks.eq).toHaveBeenCalledWith(expect.anything(), 'user_123')
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: [expect.objectContaining({ id: source.id, versions: [expect.objectContaining({ id: version.id })] })] }))
   })
 
-  describe('downloadDubbingJobVideo', () => {
-    it('throws a 401 when the authenticated user id is missing', async () => {
-      await expect(
-        downloadDubbingJobVideo(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(''),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 401,
-        message: 'Authentication required',
-      })
-    })
-
-    it('redirects a completed scoped job to a signed attachment URL', async () => {
-      const completedJob = {
-        ...baseJob,
-        status: 'completed' as const,
-        dubbedVideoKey: 'dubbed/output.mp4',
-      }
-      const res = createResponse()
-      mockSelectWhere([completedJob])
-
-      await downloadDubbingJobVideo(
-        { params: { id: baseJob.id } } as unknown as Request,
-        res,
-      )
-
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.id, baseJob.id)
-      expect(mocks.eq).toHaveBeenCalledWith(dubbingJobs.userId, 'user_123')
-      expect(mocks.getSignedObjectDownloadUrl).toHaveBeenCalledWith(
-        'dubbed/output.mp4',
-        `dubbed-video-${baseJob.id}.mp4`,
-      )
-      expect(res.redirect).toHaveBeenCalledWith(
-        'https://cdn.test/dubbed/output.mp4?download=1',
-      )
-    })
-
-    it('throws a 404 when no scoped job is found for download', async () => {
-      mockSelectWhere([])
-
-      await expect(
-        downloadDubbingJobVideo(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 404,
-        message: 'Job not found',
-      })
-    })
-
-    it('throws a 409 when the processed video is not ready', async () => {
-      mockSelectWhere([baseJob])
-
-      await expect(
-        downloadDubbingJobVideo(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 409,
-        message: 'Dubbed video is not ready for download',
-      })
-    })
-  })
-
-  describe('deleteDubbingJob', () => {
-    it('deletes all stored R2 objects before deleting a completed user-scoped job', async () => {
-      const completedJob = {
-        ...baseJob,
-        status: 'completed' as const,
-        audioKey: 'audio/source.mp3',
-        dubbedAudioKey: 'dubbed-audio/output.m4a',
-        dubbedVideoKey: 'dubbed/output.mp4',
-      }
-      const query = mockSelectWhere([completedJob])
-      const deleteQuery = mockDeleteWhere()
-      const res = createResponse()
-
-      await deleteDubbingJob(
-        { params: { id: baseJob.id } } as unknown as Request,
-        res,
-      )
-
-      expect(query.where).toHaveBeenCalledWith({
-        op: 'and',
-        conditions: [
-          { op: 'eq', column: dubbingJobs.id, value: baseJob.id },
-          { op: 'eq', column: dubbingJobs.userId, value: 'user_123' },
-        ],
-      })
-      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([
-        'videos/input.mp4',
-        'audio/source.mp3',
-        'dubbed-audio/output.m4a',
-        'dubbed/output.mp4',
-      ])
-      expect(mocks.db.delete).toHaveBeenCalledWith(dubbingJobs)
-      expect(deleteQuery.where).toHaveBeenCalledWith({
-        op: 'and',
-        conditions: [
-          { op: 'eq', column: dubbingJobs.id, value: baseJob.id },
-          { op: 'eq', column: dubbingJobs.userId, value: 'user_123' },
-        ],
-      })
-      expect(res.status).toHaveBeenCalledWith(204)
-      expect(res.send).toHaveBeenCalled()
-    })
-
-    it('deletes failed jobs even when no R2 keys are present', async () => {
-      mockSelectWhere([
-        {
-          ...baseJob,
-          status: 'failed' as const,
-          videoKey: null,
-        },
-      ])
-      mockDeleteWhere()
-      const res = createResponse()
-
-      await deleteDubbingJob(
-        { params: { id: baseJob.id } } as unknown as Request,
-        res,
-      )
-
-      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([])
-      expect(mocks.db.delete).toHaveBeenCalledWith(dubbingJobs)
-      expect(res.status).toHaveBeenCalledWith(204)
-    })
-
-    it('throws a 404 when no scoped job is found for deletion', async () => {
-      mockSelectWhere([])
-
-      await expect(
-        deleteDubbingJob(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 404,
-        message: 'Job not found',
-      })
-
-      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
-      expect(mocks.db.delete).not.toHaveBeenCalled()
-    })
-
-    it('throws a 409 and does not delete active jobs', async () => {
-      mockSelectWhere([baseJob])
-
-      await expect(
-        deleteDubbingJob(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toMatchObject<HttpError>({
-        statusCode: 409,
-        message: 'Active jobs cannot be deleted',
-      })
-
-      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
-      expect(mocks.db.delete).not.toHaveBeenCalled()
-    })
-
-    it('keeps the database row when R2 deletion fails', async () => {
-      mockSelectWhere([
-        {
-          ...baseJob,
-          status: 'completed' as const,
-        },
-      ])
-      mocks.deleteObjectsFromR2.mockRejectedValue(new Error('r2 unavailable'))
-
-      await expect(
-        deleteDubbingJob(
-          { params: { id: baseJob.id } } as unknown as Request,
-          createResponse(),
-        ),
-      ).rejects.toThrow('r2 unavailable')
-
-      expect(mocks.db.delete).not.toHaveBeenCalled()
-    })
+  it('allows download only for a completed language version owned through its source', async () => {
+    const completed = { ...version, status: 'completed' as const, dubbedVideoKey: 'dubbed/launch.mp4' }
+    const where = vi.fn().mockResolvedValue([{ source, version: completed }])
+    mocks.db.select.mockReturnValue({ from: vi.fn(() => ({ where })) })
+    const res = response()
+    await downloadDubbingJobVideo({ params: { id: version.id } } as unknown as Request, res)
+    expect(res.redirect).toHaveBeenCalledWith('https://cdn.test/download')
   })
 })

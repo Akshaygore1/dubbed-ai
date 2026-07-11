@@ -1,13 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { dubbingJobs } from "../../db/schema.js";
+import { dubbingJobs, sourceVideos } from "../../db/schema.js";
 
 export const getDubbingJobById = async (jobId: string) => {
   const [job] = await db
     .select({
       id: dubbingJobs.id,
-      videoKey: dubbingJobs.videoKey,
-      sourceLanguage: dubbingJobs.sourceLanguage,
+      videoKey: sql<string | null>`coalesce(${sourceVideos.videoKey}, ${dubbingJobs.videoKey})`,
+      sourceLanguage: sql<string>`coalesce(${sourceVideos.sourceLanguage}, ${dubbingJobs.sourceLanguage})`,
       targetLanguage: dubbingJobs.targetLanguage,
       status: dubbingJobs.status,
       errorMessage: dubbingJobs.errorMessage,
@@ -16,6 +16,7 @@ export const getDubbingJobById = async (jobId: string) => {
       dubbedVideoKey: dubbingJobs.dubbedVideoKey,
     })
     .from(dubbingJobs)
+    .leftJoin(sourceVideos, eq(dubbingJobs.sourceId, sourceVideos.id))
     .where(eq(dubbingJobs.id, jobId));
 
   return job;
