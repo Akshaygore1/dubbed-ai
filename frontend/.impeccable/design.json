@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-11T00:00:00+05:30",
+  "generatedAt": "2026-07-11T11:20:00+05:30",
   "title": "Design System: DubStudio",
   "extensions": {
     "colorMeta": {
@@ -10,7 +10,9 @@
       "translation-blue": { "role": "primary", "displayName": "Translation Blue", "canonical": "#536aa7", "tonalRamp": ["#18213d", "#27365b", "#384b7a", "#536aa7", "#7489c1", "#9eadd5", "#c9d2e8", "#eef0f6"] },
       "success": { "role": "semantic", "displayName": "Success", "canonical": "#4b705d", "tonalRamp": ["#14251d", "#294334", "#3b594a", "#4b705d", "#72927f", "#9cb4a5", "#c9d8cf", "#edf3ef"] },
       "warning": { "role": "semantic", "displayName": "Warning", "canonical": "#8b6c35", "tonalRamp": ["#2c200d", "#4a3618", "#684d25", "#8b6c35", "#aa8c59", "#c5ad80", "#dfd0ad", "#f4ecda"] },
-      "failure": { "role": "semantic", "displayName": "Failure", "canonical": "#a64139", "tonalRamp": ["#36110e", "#5d211c", "#823028", "#a64139", "#c0645c", "#d58d87", "#e8bbb7", "#f7e9e7"] }
+      "failure": { "role": "semantic", "displayName": "Failure", "canonical": "#a64139", "tonalRamp": ["#36110e", "#5d211c", "#823028", "#a64139", "#c0645c", "#d58d87", "#e8bbb7", "#f7e9e7"] },
+      "selection": { "role": "neutral", "displayName": "Selection Wash", "canonical": "#eef0f6", "tonalRamp": ["#18213d", "#27365b", "#384b7a", "#536aa7", "#7489c1", "#9eadd5", "#c9d2e8", "#eef0f6"] },
+      "video-canvas": { "role": "neutral", "displayName": "Video Canvas", "canonical": "#171715", "tonalRamp": ["#171715", "#30302d", "#51514e", "#74746f", "#999993", "#bdbdb7", "#dfdfda", "#f4f4f0"] }
     },
     "typographyMeta": {
       "display": { "displayName": "Editorial Display", "purpose": "Landing-page statements only." },

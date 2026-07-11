@@ -15,6 +15,8 @@ colors:
   success: "#4b705d"
   warning: "#8b6c35"
   failure: "#a64139"
+  selection: "#eef0f6"
+  video-canvas: "#171715"
 typography:
   display:
     fontFamily: "Instrument Serif, Georgia, serif"

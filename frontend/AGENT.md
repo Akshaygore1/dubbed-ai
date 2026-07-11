@@ -35,7 +35,7 @@ Use this agent for changes under `frontend/`.
 
 - Preserve the current feature-first structure for contact and dubbing flows.
 - Match backend field names and payload formats exactly, especially multipart `FormData` uploads for dubbing.
-- Keep the current visual direction: dark, editorial landing-page styling with restrained layout primitives rather than generic dashboard UI.
+- Keep the captured DubStudio visual direction in `PRODUCT.md` and `DESIGN.md`: a calm localization studio with editorial brand moments, restrained product UI, and creator content taking visual priority.
 - Prefer extending existing CSS variables and utility usage in `src/index.css` over scattering one-off styles.
 - Keep route additions explicit in `src/router/index.tsx`.
 
