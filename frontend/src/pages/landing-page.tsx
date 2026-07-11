@@ -18,7 +18,7 @@ import { Link } from "react-router-dom";
 
 const stages = [
   { label: "Source", value: "English", icon: UploadCloud },
-  { label: "Translate", value: "Spanish", icon: Languages },
+  { label: "Translate", value: "Hindi", icon: Languages },
   { label: "Voice", value: "Natural", icon: Mic2 },
   { label: "Export", value: "1080p", icon: Download },
 ] as const;
@@ -45,20 +45,20 @@ export function LandingPage() {
       <section className="landing-hero mx-auto grid max-w-7xl items-center gap-12 px-5 pb-16 pt-14 md:px-8 md:pb-24 md:pt-20 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:px-10 lg:pt-24">
         <div className="relative z-10 max-w-xl">
           <p className="reveal-up flex items-center gap-2 text-sm font-medium text-(--color-text-dim)">
-            <AudioLines className="size-4" /> Video localization, without the production maze
+            <AudioLines className="size-4" /> Indian-language video dubbing, without the production maze
           </p>
           <h1 className="landing-title reveal-up mt-6 font-serif text-[clamp(3.5rem,7vw,5.8rem)] leading-[0.92] tracking-[-0.04em]" style={{ animationDelay: "70ms" }}>
-            One video.<br />A wider world.
+            One video.<br />Many Indian voices.
           </h1>
           <p className="reveal-up mt-7 max-w-lg text-lg leading-8 text-(--color-text-dim)" style={{ animationDelay: "140ms" }}>
-            Turn a finished video into a natural multilingual version—translated, voiced, and ready to share from one focused workspace.
+            Turn a finished video into a natural Hindi, Tamil, Telugu, Bengali, Marathi, or other Indian-language version—translated, voiced, and ready to share from one focused workspace.
           </p>
           <div className="reveal-up mt-9 flex flex-wrap items-center gap-4" style={{ animationDelay: "210ms" }}>
             <Link className="ui-button ui-button-primary min-h-11 px-5" to="/auth">Dub your first video <ArrowRight className="size-4" /></Link>
             <a className="inline-flex min-h-11 items-center gap-2 px-1 text-sm font-semibold" href="#studio-preview"><Play className="size-4 fill-current" /> See the workflow</a>
           </div>
           <p className="reveal-up mt-6 flex items-center gap-2 text-sm text-(--color-text-dim)" style={{ animationDelay: "250ms" }}>
-            <Check className="size-4" /> No agency handoffs or complex editing timeline.
+            <Check className="size-4" /> Ten Indian languages. No agency handoffs or complex editing timeline.
           </p>
         </div>
 
@@ -69,15 +69,15 @@ export function LandingPage() {
         <div className="mx-auto grid max-w-7xl md:grid-cols-[0.9fr_1.1fr]">
           <div className="flex flex-col justify-between border-b border-(--color-border) px-5 py-12 md:border-b-0 md:border-r md:px-8 md:py-16 lg:px-10">
             <div>
-              <p className="text-sm font-medium text-(--color-accent)">From upload to audience</p>
-              <h2 className="mt-4 max-w-md font-serif text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl">Keep the edit. Change the language.</h2>
+              <p className="text-sm font-medium text-(--color-accent)">From upload to Indian audiences</p>
+              <h2 className="mt-4 max-w-md font-serif text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl">Keep the edit. Speak their language.</h2>
             </div>
-            <p className="mt-10 max-w-sm leading-7 text-(--color-text-dim)">DubStudio keeps the workflow linear, so you can prepare a new language version without learning a professional editing suite.</p>
+            <p className="mt-10 max-w-sm leading-7 text-(--color-text-dim)">DubStudio keeps the workflow linear, so you can prepare an Indian-language version without learning a professional editing suite.</p>
           </div>
 
           <ol className="divide-y divide-(--color-border)">
             <ProcessRow number="01" title="Bring the finished cut" copy="Upload the video you already publish. Your original stays untouched." icon={Film} />
-            <ProcessRow number="02" title="Choose the next audience" copy="Select the source and target languages; DubStudio prepares the translation and voice." icon={Languages} />
+            <ProcessRow number="02" title="Choose an Indian language" copy="Select the source and target languages; DubStudio prepares the translation and voice." icon={Languages} />
             <ProcessRow number="03" title="Leave with a shareable version" copy="Track processing in the workspace, then download the completed video." icon={Download} />
           </ol>
         </div>
@@ -86,12 +86,12 @@ export function LandingPage() {
       <section className="mx-auto max-w-7xl px-5 py-20 md:px-8 md:py-28 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20">
           <div>
-            <p className="font-serif text-4xl leading-[1.03] tracking-[-0.03em] sm:text-5xl">Made for work worth understanding.</p>
-            <p className="mt-6 max-w-md leading-7 text-(--color-text-dim)">Whether you teach a concept or tell a story, the interface stays out of the way and keeps the next version moving.</p>
+            <p className="font-serif text-4xl leading-[1.03] tracking-[-0.03em] sm:text-5xl">Made for work India should understand.</p>
+            <p className="mt-6 max-w-md leading-7 text-(--color-text-dim)">Whether you teach a concept or tell a story, the interface stays out of the way and keeps your Indian-language version moving.</p>
           </div>
           <div className="border-t border-(--color-border)">
-            <AudienceRow icon={Users} title="Independent creators" copy="Take a finished essay, tutorial, or film to viewers who would otherwise miss it." />
-            <AudienceRow icon={BookOpen} title="Educators" copy="Make lessons easier to follow for multilingual classrooms and global learners." />
+            <AudienceRow icon={Users} title="Independent creators" copy="Take a finished essay, tutorial, or film to viewers across India in the language they understand." />
+            <AudienceRow icon={BookOpen} title="Educators" copy="Make lessons easier to follow for multilingual classrooms and learners across India." />
           </div>
         </div>
       </section>
@@ -99,8 +99,8 @@ export function LandingPage() {
       <section className="bg-(--color-text) text-(--color-surface)">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-10 px-5 py-16 md:flex-row md:items-end md:px-8 md:py-20 lg:px-10">
           <div>
-            <p className="text-sm text-white/65">Your next audience is already out there.</p>
-            <h2 className="mt-4 max-w-2xl font-serif text-4xl leading-[1.02] tracking-[-0.03em] sm:text-6xl">Let them hear the work in their language.</h2>
+            <p className="text-sm text-white/65">Your next audience is already in India.</p>
+            <h2 className="mt-4 max-w-2xl font-serif text-4xl leading-[1.02] tracking-[-0.03em] sm:text-6xl">Let them hear your work in their language.</h2>
           </div>
           <Link className="inline-flex min-h-12 shrink-0 items-center gap-3 bg-white px-5 text-sm font-semibold text-(--color-text) transition hover:bg-(--color-panel)" to="/auth">Start a project <ArrowRight className="size-4" /></Link>
         </div>
@@ -108,7 +108,7 @@ export function LandingPage() {
 
       <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 text-sm text-(--color-text-dim) sm:flex-row sm:items-center sm:justify-between md:px-8 lg:px-10">
         <Brand />
-        <p>Video localization for independent creators and educators.</p>
+        <p>Indian-language video dubbing for independent creators and educators.</p>
       </footer>
     </main>
   );
