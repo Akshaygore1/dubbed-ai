@@ -23,6 +23,12 @@ export const createDubbingSchema = z
     },
   )
 
+export const createSourceVersionSchema = z
+  .object({
+    targetLanguage: z.enum(DUBBING_LANGUAGE_CODES),
+  })
+  .strict()
+
 export const transcriptSegmentSchema = z.object({
   index: z.number().int().nonnegative(),
   sourceText: z.string(),

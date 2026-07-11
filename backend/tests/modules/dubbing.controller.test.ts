@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../src/lib/http-error.js'
-import { createDubbingJob, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
+import { createDubbingJob, createSourceVersion, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
 
 const mocks = vi.hoisted(() => ({
   db: { insert: vi.fn(), select: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getSignedObjectUrl: vi.fn(),
   getSignedObjectDownloadUrl: vi.fn(),
   uploadVideoToR2: vi.fn(),
+  deleteObjectsFromR2: vi.fn(),
   publishDubbingJob: vi.fn(),
 }))
 
@@ -20,7 +21,7 @@ vi.mock('../../src/db/client.js', () => ({ db: mocks.db }))
 vi.mock('drizzle-orm', () => ({ and: mocks.and, desc: mocks.desc, eq: mocks.eq }))
 vi.mock('../../src/lib/r2.js', () => ({
   createVideoObjectKey: mocks.createVideoObjectKey,
-  deleteObjectsFromR2: vi.fn(),
+  deleteObjectsFromR2: mocks.deleteObjectsFromR2,
   getStoredVideoUrl: mocks.getStoredVideoUrl,
   getSignedObjectUrl: mocks.getSignedObjectUrl,
   getSignedObjectDownloadUrl: mocks.getSignedObjectDownloadUrl,
@@ -95,5 +96,78 @@ describe('reusable source-video controller', () => {
     const res = response()
     await downloadDubbingJobVideo({ params: { id: version.id } } as unknown as Request, res)
     expect(res.redirect).toHaveBeenCalledWith('https://cdn.test/download')
+  })
+
+  it('reuses an owned source to create and enqueue a different language without uploading', async () => {
+    const tamilVersion = { ...version, id: 'dc868836-2efe-44c7-988d-45337927abdc', targetLanguage: 'ta-IN' }
+    const sourceWhere = vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) }))
+    const versionsWhere = vi.fn().mockResolvedValue([])
+    mocks.db.select
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: sourceWhere })) })
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: versionsWhere })) })
+    const versionInsert = insertReturning(tamilVersion)
+    mocks.db.insert.mockReturnValue(versionInsert)
+    const sourceUpdateWhere = vi.fn().mockResolvedValue(undefined)
+    mocks.db.update.mockReturnValue({ set: vi.fn(() => ({ where: sourceUpdateWhere })) })
+
+    const res = response()
+    await createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, res)
+
+    expect(mocks.uploadVideoToR2).not.toHaveBeenCalled()
+    expect(versionInsert.values).toHaveBeenCalledWith(expect.objectContaining({ sourceId: source.id, sourceLanguage: 'en-IN', targetLanguage: 'ta-IN', status: 'pending' }))
+    expect(mocks.publishDubbingJob).toHaveBeenCalledWith({ jobId: tamilVersion.id })
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ id: tamilVersion.id, targetLanguage: 'ta-IN' }) }))
+  })
+
+  it('returns an ownership-safe not found for another user source', async () => {
+    mocks.db.select.mockReturnValue({ from: vi.fn(() => ({ where: vi.fn(() => ({ for: vi.fn().mockResolvedValue([]) })) })) })
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 404 })
+  })
+
+  it('rejects an unsupported target language before accessing the source', async () => {
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'fr-FR' } } as unknown as Request, response())).rejects.toMatchObject({ name: 'ZodError' })
+    expect(mocks.db.transaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects the locked source language as a target', async () => {
+    mocks.db.select.mockReturnValue({ from: vi.fn(() => ({ where: vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) })) })) })
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'en-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 400 })
+  })
+
+  it.each([
+    ['processing', 'Another language version is already active'],
+    ['completed', 'This target language has already been added'],
+  ] as const)('returns a conflict when an existing version is %s', async (status, message) => {
+    const sourceWhere = vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) }))
+    const versionsWhere = vi.fn().mockResolvedValue([{ ...version, status, targetLanguage: status === 'completed' ? 'ta-IN' : 'hi-IN' }])
+    mocks.db.select.mockReturnValueOnce({ from: vi.fn(() => ({ where: sourceWhere })) }).mockReturnValueOnce({ from: vi.fn(() => ({ where: versionsWhere })) })
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 409, message })
+  })
+
+  it('does not turn a failed language into an implicit retry', async () => {
+    const sourceWhere = vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) }))
+    const versionsWhere = vi.fn().mockResolvedValue([{ ...version, status: 'failed', targetLanguage: 'ta-IN' }])
+    mocks.db.select.mockReturnValueOnce({ from: vi.fn(() => ({ where: sourceWhere })) }).mockReturnValueOnce({ from: vi.fn(() => ({ where: versionsWhere })) })
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 409, message: 'Failed language versions require the separate retry flow' })
+  })
+
+  it('retains and marks a newly created version failed when enqueueing fails', async () => {
+    const failedVersion = { ...version, id: 'dc868836-2efe-44c7-988d-45337927abdc', targetLanguage: 'ta-IN' }
+    mocks.db.select.mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) })) })) }).mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })) })
+    mocks.db.insert.mockReturnValue(insertReturning(failedVersion))
+    const where = vi.fn().mockResolvedValue(undefined)
+    const set = vi.fn(() => ({ where }))
+    mocks.db.update.mockReturnValue({ set })
+    mocks.publishDubbingJob.mockRejectedValue(new Error('queue unavailable'))
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 500 })
+    expect(mocks.db.update).toHaveBeenCalledTimes(2)
+    expect(set).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'failed', errorMessage: 'queue unavailable' }))
+    expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+  })
+
+  it('maps a database uniqueness race to a conflict', async () => {
+    mocks.db.transaction.mockRejectedValue(Object.assign(new Error('duplicate'), { code: '23505' }))
+    await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 409 })
   })
 })

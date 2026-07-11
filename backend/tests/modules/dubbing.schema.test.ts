@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDubbingSchema } from '../../src/modules/dubbing/dubbing.schema.js'
+import { createDubbingSchema, createSourceVersionSchema } from '../../src/modules/dubbing/dubbing.schema.js'
 
 describe('createDubbingSchema', () => {
   it('accepts supported source and target language codes', () => {
@@ -67,5 +67,13 @@ describe('createDubbingSchema', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+})
+
+describe('createSourceVersionSchema', () => {
+  it('accepts only a supported target language', () => {
+    expect(createSourceVersionSchema.parse({ targetLanguage: 'ta-IN' })).toEqual({ targetLanguage: 'ta-IN' })
+    expect(() => createSourceVersionSchema.parse({ targetLanguage: 'fr-FR' })).toThrow()
+    expect(() => createSourceVersionSchema.parse({ targetLanguage: 'ta-IN', sourceLanguage: 'en-IN' })).toThrow()
   })
 })

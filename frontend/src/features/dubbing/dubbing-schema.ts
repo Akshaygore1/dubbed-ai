@@ -14,6 +14,11 @@ const isSupportedLanguageCode = (value: string) => {
   )
 }
 
+const targetLanguageSchema = z
+  .string()
+  .min(1, 'Please select a target language')
+  .refine(isSupportedLanguageCode, 'Please select a supported target language')
+
 export const dubbingSchema = z.object({
   sourceLanguage: z
     .string()
@@ -22,10 +27,7 @@ export const dubbingSchema = z.object({
       (value) => value === AUTO_SOURCE_LANGUAGE_CODE || isSupportedLanguageCode(value),
       'Please select a supported source language',
     ),
-  targetLanguage: z
-    .string()
-    .min(1, 'Please select a target language')
-    .refine(isSupportedLanguageCode, 'Please select a supported target language'),
+  targetLanguage: targetLanguageSchema,
 }).refine(
   (value) =>
     value.sourceLanguage === AUTO_SOURCE_LANGUAGE_CODE ||
@@ -37,3 +39,9 @@ export const dubbingSchema = z.object({
 )
 
 export type DubbingFormData = z.infer<typeof dubbingSchema>
+
+export const addSourceVersionSchema = z.object({
+  targetLanguage: targetLanguageSchema,
+})
+
+export type AddSourceVersionFormData = z.infer<typeof addSourceVersionSchema>

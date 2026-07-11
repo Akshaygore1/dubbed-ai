@@ -3,7 +3,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import multer from 'multer'
 import { db } from '../../db/client.js'
 import { dubbingJobs, sourceVideos } from '../../db/schema.js'
-import { createDubbingSchema } from './dubbing.schema.js'
+import { createDubbingSchema, createSourceVersionSchema } from './dubbing.schema.js'
 import { HttpError } from '../../lib/http-error.js'
 import {
   createVideoObjectKey,
@@ -137,6 +137,17 @@ const getVersionIdParam = (req: Request) => {
   return id
 }
 
+const getSourceIdParam = (req: Request) => {
+  const sourceId = req.params.sourceId
+  if (typeof sourceId !== 'string' || sourceId.length === 0) {
+    throw new HttpError(404, 'Source video not found')
+  }
+  return sourceId
+}
+
+const isUniqueViolation = (error: unknown) =>
+  typeof error === 'object' && error !== null && 'code' in error && error.code === '23505'
+
 const getScopedVersion = async (id: string, userId: string) => {
   const [row] = await db
     .select({ version: versionFields })
@@ -212,6 +223,85 @@ export const createDubbingJob = async (req: Request, res: Response) => {
     success: true,
     message: 'Source video and language version created',
     data: await toSourceResponse(source, [job]),
+  })
+}
+
+export const createSourceVersion = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
+  const sourceId = getSourceIdParam(req)
+  const payload = createSourceVersionSchema.parse(req.body)
+
+  let job: VersionRow
+  try {
+    job = await db.transaction(async (tx) => {
+      const [source] = await tx
+        .select(sourceFields)
+        .from(sourceVideos)
+        .where(and(eq(sourceVideos.id, sourceId), eq(sourceVideos.userId, userId)))
+        .for('update')
+      if (!source) throw new HttpError(404, 'Source video not found')
+      if (source.sourceLanguage === payload.targetLanguage) {
+        throw new HttpError(400, 'Source and target languages must be different')
+      }
+
+      const versions = await tx
+        .select(versionFields)
+        .from(dubbingJobs)
+        .where(eq(dubbingJobs.sourceId, source.id))
+      if (versions.some((version) => version.status === 'pending' || version.status === 'processing')) {
+        throw new HttpError(409, 'Another language version is already active')
+      }
+      const sameLanguageVersion = versions.find(
+        (version) => version.targetLanguage === payload.targetLanguage,
+      )
+      if (sameLanguageVersion?.status === 'failed') {
+        throw new HttpError(409, 'Failed language versions require the separate retry flow')
+      }
+      if (sameLanguageVersion) {
+        throw new HttpError(409, 'This target language has already been added')
+      }
+
+      const [createdJob] = await tx
+        .insert(dubbingJobs)
+        .values({
+          sourceId: source.id,
+          userId,
+          sourceLanguage: source.sourceLanguage,
+          targetLanguage: payload.targetLanguage,
+          status: 'pending',
+        })
+        .returning(versionFields)
+      if (!createdJob) throw new Error('Failed to create language version')
+
+      await tx
+        .update(sourceVideos)
+        .set({ updatedAt: new Date() })
+        .where(eq(sourceVideos.id, source.id))
+      return createdJob
+    })
+  } catch (error) {
+    if (error instanceof HttpError) throw error
+    if (isUniqueViolation(error)) {
+      throw new HttpError(409, 'A conflicting language version was created concurrently')
+    }
+    throw error
+  }
+
+  try {
+    await publishDubbingJob({ jobId: job.id })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to enqueue dubbing job'
+    await db
+      .update(dubbingJobs)
+      .set({ status: 'failed', errorMessage: message, updatedAt: new Date() })
+      .where(eq(dubbingJobs.id, job.id))
+    throw new HttpError(500, 'Failed to enqueue dubbing job')
+  }
+
+  res.status(201).json({
+    success: true,
+    message: 'Language version created',
+    data: await toVersionResponse(job),
   })
 }
 

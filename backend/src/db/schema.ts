@@ -5,8 +5,10 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 export const approvalStatusEnum = pgEnum('approval_status', [
   'pending',
@@ -154,4 +156,12 @@ export const dubbingJobs = pgTable('dubbing_jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()
     .notNull(),
-})
+}, (table) => [
+  index('dubbing_jobs_source_id_idx').on(table.sourceId),
+  uniqueIndex('dubbing_jobs_one_active_version_per_source_idx')
+    .on(table.sourceId)
+    .where(sql`${table.status} in ('pending', 'processing')`),
+  uniqueIndex('dubbing_jobs_one_current_target_per_source_idx')
+    .on(table.sourceId, table.targetLanguage)
+    .where(sql`${table.status} in ('pending', 'processing', 'completed')`),
+])
