@@ -29,8 +29,8 @@ export function PendingPage() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <section className="mx-auto flex min-h-screen max-w-4xl flex-col justify-between px-5 py-5 md:px-8">
-        <div className="flex items-center justify-between gap-4">
+      <section className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-6 md:px-8 lg:px-10">
+        <div className="flex items-center justify-between gap-4 border-b border-(--color-border) pb-6">
           <Brand />
           <button
             className="ui-button ui-button-secondary disabled:cursor-not-allowed disabled:opacity-60"
@@ -47,13 +47,11 @@ export function PendingPage() {
           </button>
         </div>
 
-        <div className="my-auto grid gap-8 py-14 lg:grid-cols-[1fr_0.7fr] lg:items-end">
+        <div className="my-auto grid gap-12 py-16 lg:grid-cols-[1.05fr_0.75fr] lg:items-center">
           <div>
-            <p className="ui-eyebrow">
-              Approval required
-            </p>
+            <p className="text-sm font-medium text-(--color-text-dim)">Account received</p>
             <h1 className="mt-4 font-serif text-5xl leading-[0.98] tracking-[-0.035em] md:text-6xl">
-              Your workspace is waiting for approval.
+              Your studio is almost ready.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-(--color-text-dim)">
               {currentUser?.email
@@ -61,14 +59,14 @@ export function PendingPage() {
                 : 'You are signed in successfully, but uploads stay locked until an admin approves the account.'}
             </p>
             <div className="mt-8 flex items-center gap-3 border-t border-(--color-border) pt-5 text-sm text-(--color-text-dim)">
-              <LoaderCircle className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin text-(--color-accent)" />
               This page checks your approval status automatically.
             </div>
           </div>
 
-          <div className="grid gap-4">
-            <article className="ui-panel p-5">
-              <div className="mb-4 flex items-center gap-2 text-(--color-blue)">
+          <div className="border-t border-(--color-text) bg-(--color-surface)">
+            <article className="border-b border-(--color-border) p-6">
+              <div className="mb-4 flex items-center gap-2 text-(--color-text-dim)">
                 <ShieldCheck className="size-4" />
                 <span className="font-mono text-xs font-semibold">status</span>
               </div>
@@ -80,8 +78,8 @@ export function PendingPage() {
               </p>
             </article>
 
-            <article className="ui-panel p-5">
-              <div className="mb-4 flex items-center gap-2 text-(--color-blue)">
+            <article className="p-6">
+              <div className="mb-4 flex items-center gap-2 text-(--color-text-dim)">
                 <Clock3 className="size-4" />
                 <span className="font-mono text-xs font-semibold">next step</span>
               </div>

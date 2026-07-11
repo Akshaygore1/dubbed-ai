@@ -49,16 +49,15 @@ export function AdminUsersPage() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <section className="mx-auto max-w-6xl px-5 py-5 md:px-8">
-        <header className="mb-12 flex flex-col gap-7 border-b border-(--color-border) pb-8 md:flex-row md:items-end md:justify-between">
+      <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 lg:px-10">
+        <header className="mb-10 flex flex-col gap-7 border-b border-(--color-border) pb-7 md:flex-row md:items-end md:justify-between">
           <div>
             <Brand />
-            <p className="mt-10 ui-eyebrow">
-              Admin portal
-            </p>
+            <p className="mt-10 text-sm font-medium text-(--color-text-dim)">Workspace access</p>
             <h1 className="mt-3 font-serif text-5xl leading-[0.98] tracking-[-0.035em]">
-              Review account approvals.
+              Account approvals.
             </h1>
+            <p className="mt-4 max-w-xl leading-7 text-(--color-text-dim)">Review new creators and educators before their upload workspace becomes available.</p>
           </div>
 
           <button
@@ -76,10 +75,10 @@ export function AdminUsersPage() {
           </button>
         </header>
 
-        <div className="mb-6 flex gap-1 border-b border-(--color-border)">
+        <div className="mb-6 flex gap-6 border-b border-(--color-border)">
           {tabs.map((tab) => (
             <button
-              className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
+              className={`border-b-2 px-0 py-3 text-sm font-semibold transition ${
                 activeTab === tab
                   ? 'border-(--color-blue) text-(--color-blue)'
                   : 'border-transparent text-(--color-text-dim) hover:text-(--color-text)'
@@ -93,7 +92,7 @@ export function AdminUsersPage() {
           ))}
         </div>
 
-        <section className="overflow-x-auto ui-panel">
+        <section className="overflow-x-auto border-t border-(--color-text) bg-(--color-surface)">
           <div className="min-w-[860px]">
             <div className="grid grid-cols-[1.1fr_1.2fr_1fr_0.9fr_1fr_auto] gap-4 border-b border-(--color-border) px-5 py-4 font-mono text-xs font-semibold uppercase tracking-wide text-(--color-text-dim)">
               <span>Name</span>

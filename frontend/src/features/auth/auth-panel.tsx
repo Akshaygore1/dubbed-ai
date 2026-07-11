@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Check,
   LoaderCircle,
   Lock,
   Mail,
@@ -99,23 +100,25 @@ export function AuthPanel() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <section className="mx-auto grid min-h-screen max-w-5xl gap-10 px-5 py-5 md:px-8 lg:grid-cols-[0.9fr_0.8fr] lg:items-center">
-        <div className="flex min-h-[22rem] flex-col justify-between border-b border-(--color-border) py-6 lg:min-h-[34rem] lg:border-b-0 lg:border-r lg:py-0 lg:pr-12">
+      <section className="mx-auto grid min-h-screen max-w-6xl lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="flex min-h-[28rem] flex-col justify-between border-b border-(--color-border) px-5 py-6 md:px-8 lg:min-h-screen lg:border-b-0 lg:border-r lg:px-10 lg:py-8">
           <div className="flex items-center justify-between gap-4">
             <Brand />
           </div>
 
-          <div className="my-12 max-w-xl lg:my-0">
-            <p className="ui-eyebrow">
-              Account access
-            </p>
-            <h1 className="mt-4 font-serif text-5xl leading-[0.98] tracking-[-0.035em] md:text-6xl">
-              Keep each dubbing job tied to your studio.
+          <div className="my-14 max-w-xl lg:my-auto">
+            <p className="text-sm font-medium text-(--color-text-dim)">Your private localization studio</p>
+            <h1 className="mt-5 font-serif text-5xl leading-[0.96] tracking-[-0.035em] md:text-6xl">
+              Your videos stay connected to you.
             </h1>
             <p className="mt-5 max-w-md leading-7 text-(--color-text-dim)">
-              Uploads, processing status, and download links stay private to
-              your signed-in workspace.
+              Uploads, progress, and completed language versions live in one focused workspace.
             </p>
+            <ul className="mt-8 space-y-3 border-t border-(--color-border) pt-6 text-sm text-(--color-text-dim)">
+              <li className="flex items-center gap-3"><Check className="size-4" /> Finished versions stay organized with your account</li>
+              <li className="flex items-center gap-3"><Check className="size-4" /> Processing status updates automatically</li>
+              <li className="flex items-center gap-3"><Check className="size-4" /> Finished videos stay tied to your account</li>
+            </ul>
           </div>
 
           <Link
@@ -127,13 +130,14 @@ export function AuthPanel() {
           </Link>
         </div>
 
+        <div className="flex items-center justify-center bg-(--color-surface) px-5 py-12 md:px-8 lg:min-h-screen lg:px-12">
         <form
-          className="ui-panel self-center p-5 md:p-7"
+          className="w-full max-w-md border-t border-(--color-text) pt-7"
           onSubmit={handleSubmit}
         >
           <div className="mb-8">
             <div>
-              <p className="ui-eyebrow">
+              <p className="text-sm font-medium text-(--color-text-dim)">
                 {copy.eyebrow}
               </p>
               <h2 className="mt-3 font-serif text-3xl tracking-[-0.02em] text-(--color-text)">
@@ -228,6 +232,7 @@ export function AuthPanel() {
             {copy.alternate}
           </button>
         </form>
+        </div>
       </section>
     </main>
   );

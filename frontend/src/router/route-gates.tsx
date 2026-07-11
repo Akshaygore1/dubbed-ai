@@ -126,9 +126,11 @@ export function AdminUsersRoute() {
 
 function RouteLoader({ label }: { label: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center text-sm text-(--color-text-dim)">
-      <LoaderCircle className="mr-3 size-4 animate-spin text-(--color-blue)" />
-      {label}
+    <main className="flex min-h-screen items-center justify-center bg-(--color-bg) px-5 text-(--color-text)">
+      <div className="w-full max-w-sm border-t border-(--color-text) pt-5">
+        <div className="flex items-center gap-3 text-sm font-medium"><LoaderCircle className="size-4 animate-spin text-(--color-accent)" />{label}</div>
+        <p className="mt-3 text-sm text-(--color-text-dim)">DubStudio is preparing the next screen.</p>
+      </div>
     </main>
   )
 }

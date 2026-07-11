@@ -26,12 +26,12 @@ export function WorkspacePage() {
 
   return (
     <main className="min-h-screen bg-(--color-bg) text-(--color-text)">
-      <header className="border-b border-(--color-border) bg-(--color-bg)">
+      <header className="border-b border-(--color-border) bg-(--color-surface)">
         <div className="mx-auto flex h-14 max-w-[960px] items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3"><Brand /><span className="border-l border-(--color-border) pl-3 text-xs text-(--color-text-dim)">Workspace</span></div>
+          <div className="flex items-center gap-3"><Brand /><span className="border-l border-(--color-border) pl-3 text-xs text-(--color-text-dim)">Creator workspace</span></div>
 
           <button
-            className="inline-flex h-8 items-center gap-1.5 px-1 text-xs font-medium text-(--color-text-dim) transition hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-1.5 px-1 text-xs font-medium text-(--color-text-dim) transition hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSigningOut}
             onClick={handleSignOut}
             type="button"
@@ -46,7 +46,15 @@ export function WorkspacePage() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[960px] flex-col gap-10 px-4 py-7 sm:px-6 sm:py-9">
+      <div className="mx-auto flex max-w-[960px] flex-col gap-10 px-4 py-8 sm:px-6 sm:py-12">
+        <section className="border-b border-(--color-border) pb-8">
+          <div>
+            <p className="text-sm font-medium text-(--color-text-dim)">Localization studio</p>
+            <h1 className="mt-2 font-serif text-4xl leading-none tracking-[-0.03em] sm:text-5xl">Prepare the next version.</h1>
+            <p className="mt-4 max-w-xl leading-7 text-(--color-text-dim)">Upload a finished video, choose its audience, and follow the processing status below.</p>
+          </div>
+        </section>
+
         <section>
           <DubbingForm />
         </section>
