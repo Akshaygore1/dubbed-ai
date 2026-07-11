@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpError } from '../../src/lib/http-error.js'
-import { createDubbingJob, createSourceVersion, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
+import { createDubbingJob, createDubbingUpload, createSourceVersion, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
 
 const mocks = vi.hoisted(() => ({
   db: { insert: vi.fn(), select: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
@@ -9,10 +9,11 @@ const mocks = vi.hoisted(() => ({
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((column: unknown, value: unknown) => ({ op: 'eq', column, value })),
   createVideoObjectKey: vi.fn(),
+  createPresignedVideoUpload: vi.fn(),
   getStoredVideoUrl: vi.fn(),
+  getUploadedVideoMetadata: vi.fn(),
   getSignedObjectUrl: vi.fn(),
   getSignedObjectDownloadUrl: vi.fn(),
-  uploadVideoToR2: vi.fn(),
   deleteObjectsFromR2: vi.fn(),
   publishDubbingJob: vi.fn(),
 }))
@@ -21,11 +22,12 @@ vi.mock('../../src/db/client.js', () => ({ db: mocks.db }))
 vi.mock('drizzle-orm', () => ({ and: mocks.and, desc: mocks.desc, eq: mocks.eq }))
 vi.mock('../../src/lib/r2.js', () => ({
   createVideoObjectKey: mocks.createVideoObjectKey,
+  createPresignedVideoUpload: mocks.createPresignedVideoUpload,
   deleteObjectsFromR2: mocks.deleteObjectsFromR2,
+  getUploadedVideoMetadata: mocks.getUploadedVideoMetadata,
   getStoredVideoUrl: mocks.getStoredVideoUrl,
   getSignedObjectUrl: mocks.getSignedObjectUrl,
   getSignedObjectDownloadUrl: mocks.getSignedObjectDownloadUrl,
-  uploadVideoToR2: mocks.uploadVideoToR2,
 }))
 vi.mock('../../src/lib/queue.js', () => ({ publishDubbingJob: mocks.publishDubbingJob }))
 
@@ -52,17 +54,47 @@ describe('reusable source-video controller', () => {
     mocks.getStoredVideoUrl.mockReturnValue('r2://videos/launch.mp4')
     mocks.getSignedObjectUrl.mockImplementation(async (key: string) => `https://cdn.test/${key}`)
     mocks.getSignedObjectDownloadUrl.mockResolvedValue('https://cdn.test/download')
-    mocks.uploadVideoToR2.mockResolvedValue(undefined)
+    mocks.createPresignedVideoUpload.mockResolvedValue('https://r2.test/upload')
+    mocks.getUploadedVideoMetadata.mockResolvedValue({
+      ContentLength: 5,
+      ContentType: 'video/mp4',
+      Metadata: { 'upload-owner': 'user_123' },
+    })
     mocks.publishDubbingJob.mockResolvedValue(undefined)
     mocks.db.transaction.mockImplementation(async (callback: (tx: typeof mocks.db) => unknown) => callback(mocks.db))
   })
 
-  it('creates one user-owned source and its first language version from an upload', async () => {
+  it('creates a user-bound direct upload URL', async () => {
+    const res = response()
+    await createDubbingUpload(
+      {
+        body: { originalFilename: 'launch.mp4', contentType: 'video/mp4' },
+      } as Request,
+      res,
+    )
+
+    expect(mocks.createPresignedVideoUpload).toHaveBeenCalledWith({
+      key: 'videos/launch.mp4',
+      contentType: 'video/mp4',
+      userId: 'user_123',
+    })
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          videoKey: 'videos/launch.mp4',
+          uploadUrl: 'https://r2.test/upload',
+        }),
+      }),
+    )
+  })
+
+  it('creates one user-owned source and its first language version from a verified direct upload', async () => {
     const sourceInsert = insertReturning(source)
     const versionInsert = insertReturning(version)
     mocks.db.insert.mockReturnValueOnce(sourceInsert).mockReturnValueOnce(versionInsert)
     const res = response()
-    await createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN' }, file: { originalname: 'launch.mp4', mimetype: 'video/mp4', buffer: Buffer.from('video') } } as unknown as Request, res)
+    await createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN', originalFilename: 'launch.mp4', videoKey: 'videos/launch.mp4' } } as unknown as Request, res)
 
     expect(sourceInsert.values).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_123', originalFilename: 'launch.mp4', displayTitle: 'launch.mp4', videoKey: 'videos/launch.mp4' }))
     expect(versionInsert.values).toHaveBeenCalledWith(expect.objectContaining({ sourceId: source.id, targetLanguage: 'hi-IN', status: 'pending' }))
@@ -75,8 +107,61 @@ describe('reusable source-video controller', () => {
     const where = vi.fn().mockResolvedValue(undefined)
     mocks.db.update.mockReturnValue({ set: vi.fn(() => ({ where })) })
     mocks.publishDubbingJob.mockRejectedValue(new Error('queue unavailable'))
-    await expect(createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN' }, file: { originalname: 'launch.mp4', mimetype: 'video/mp4', buffer: Buffer.from('video') } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 500, message: 'Failed to enqueue dubbing job' })
+    await expect(createDubbingJob({ body: { sourceLanguage: 'en-IN', targetLanguage: 'hi-IN', originalFilename: 'launch.mp4', videoKey: 'videos/launch.mp4' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 500, message: 'Failed to enqueue dubbing job' })
     expect(mocks.db.update).toHaveBeenCalled()
+  })
+
+  it('rejects a direct upload owned by another user', async () => {
+    mocks.getUploadedVideoMetadata.mockResolvedValue({
+      ContentLength: 5,
+      ContentType: 'video/mp4',
+      Metadata: { 'upload-owner': 'another-user' },
+    })
+
+    await expect(
+      createDubbingJob(
+        {
+          body: {
+            sourceLanguage: 'en-IN',
+            targetLanguage: 'hi-IN',
+            originalFilename: 'launch.mp4',
+            videoKey: 'videos/launch.mp4',
+          },
+        } as Request,
+        response(),
+      ),
+    ).rejects.toMatchObject<HttpError>({ statusCode: 403 })
+    expect(mocks.db.transaction).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing', null, 400],
+    [
+      'oversized',
+      {
+        ContentLength: 50 * 1024 * 1024 + 1,
+        ContentType: 'video/mp4',
+        Metadata: { 'upload-owner': 'user_123' },
+      },
+      400,
+    ],
+  ])('rejects a %s direct upload before creating a job', async (_case, uploadedVideo, statusCode) => {
+    mocks.getUploadedVideoMetadata.mockResolvedValue(uploadedVideo)
+
+    await expect(
+      createDubbingJob(
+        {
+          body: {
+            sourceLanguage: 'en-IN',
+            targetLanguage: 'hi-IN',
+            originalFilename: 'launch.mp4',
+            videoKey: 'videos/launch.mp4',
+          },
+        } as Request,
+        response(),
+      ),
+    ).rejects.toMatchObject<HttpError>({ statusCode })
+    expect(mocks.db.transaction).not.toHaveBeenCalled()
   })
 
   it('groups only the authenticated user\'s language versions below their source', async () => {
@@ -113,7 +198,7 @@ describe('reusable source-video controller', () => {
     const res = response()
     await createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, res)
 
-    expect(mocks.uploadVideoToR2).not.toHaveBeenCalled()
+    expect(mocks.getUploadedVideoMetadata).not.toHaveBeenCalled()
     expect(versionInsert.values).toHaveBeenCalledWith(expect.objectContaining({ sourceId: source.id, sourceLanguage: 'en-IN', targetLanguage: 'ta-IN', status: 'pending' }))
     expect(mocks.publishDubbingJob).toHaveBeenCalledWith({ jobId: tamilVersion.id })
     expect(res.status).toHaveBeenCalledWith(201)

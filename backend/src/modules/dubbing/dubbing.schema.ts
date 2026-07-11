@@ -23,6 +23,20 @@ export const createDubbingSchema = z
     },
   )
 
+export const createDubbingUploadSchema = z
+  .object({
+    originalFilename: z.string().trim().min(1).max(255),
+    contentType: z.string().startsWith('video/'),
+  })
+  .strict()
+
+export const completeDubbingUploadSchema = createDubbingSchema
+  .extend({
+    originalFilename: z.string().trim().min(1).max(255),
+    videoKey: z.string().startsWith('videos/').max(512),
+  })
+  .strict()
+
 export const createSourceVersionSchema = z
   .object({
     targetLanguage: z.enum(DUBBING_LANGUAGE_CODES),

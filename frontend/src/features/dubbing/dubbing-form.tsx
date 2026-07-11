@@ -140,11 +140,7 @@ export function DubbingForm() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("video", videoFile);
-    formData.append("sourceLanguage", values.sourceLanguage);
-    formData.append("targetLanguage", values.targetLanguage);
-    mutation.mutate(formData, {
+    mutation.mutate({ ...values, videoFile }, {
       onSuccess: () => {
         setVideoFile(null);
         setFileError(null);

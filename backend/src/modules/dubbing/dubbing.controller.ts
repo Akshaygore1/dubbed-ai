@@ -1,17 +1,21 @@
 import type { Request, Response } from 'express'
 import { and, desc, eq } from 'drizzle-orm'
-import multer from 'multer'
 import { db } from '../../db/client.js'
 import { dubbingJobs, sourceVideos } from '../../db/schema.js'
-import { createDubbingSchema, createSourceVersionSchema } from './dubbing.schema.js'
+import {
+  completeDubbingUploadSchema,
+  createDubbingUploadSchema,
+  createSourceVersionSchema,
+} from './dubbing.schema.js'
 import { HttpError } from '../../lib/http-error.js'
 import {
   createVideoObjectKey,
+  createPresignedVideoUpload,
   deleteObjectsFromR2,
+  getUploadedVideoMetadata,
   getSignedObjectDownloadUrl,
   getSignedObjectUrl,
   getStoredVideoUrl,
-  uploadVideoToR2,
 } from '../../lib/r2.js'
 import { publishDubbingJob } from '../../lib/queue.js'
 
@@ -161,26 +165,44 @@ const deriveDisplayTitle = (originalFilename: string) => {
   return basename || 'Untitled source video'
 }
 
-export const uploadVideo = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: maxVideoFileSizeBytes },
-  fileFilter: (_req, file, callback) => {
-    if (!file.mimetype.startsWith(allowedMimeTypePrefix)) {
-      callback(new HttpError(400, 'Only video uploads are allowed'))
-      return
-    }
-    callback(null, true)
-  },
-})
+export const createDubbingUpload = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
+  const payload = createDubbingUploadSchema.parse(req.body)
+  const videoKey = createVideoObjectKey(payload.originalFilename)
+  const uploadUrl = await createPresignedVideoUpload({
+    key: videoKey,
+    contentType: payload.contentType,
+    userId,
+  })
+
+  res.status(201).json({
+    success: true,
+    data: {
+      videoKey,
+      uploadUrl,
+      uploadHeaders: {
+        'Content-Type': payload.contentType,
+        'x-amz-meta-upload-owner': userId,
+      },
+    },
+  })
+}
 
 export const createDubbingJob = async (req: Request, res: Response) => {
   const userId = getAuthenticatedUserId(res)
-  const payload = createDubbingSchema.parse(req.body)
-  const file = req.file
-  if (!file) throw new HttpError(400, 'Video file is required')
-
-  const videoKey = createVideoObjectKey(file.originalname)
-  await uploadVideoToR2({ key: videoKey, body: file.buffer, contentType: file.mimetype })
+  const payload = completeDubbingUploadSchema.parse(req.body)
+  const uploadedVideo = await getUploadedVideoMetadata(payload.videoKey)
+  if (!uploadedVideo) throw new HttpError(400, 'Uploaded video was not found')
+  if (uploadedVideo.Metadata?.['upload-owner'] !== userId) {
+    throw new HttpError(403, 'Uploaded video does not belong to this user')
+  }
+  if (
+    !uploadedVideo.ContentType?.startsWith(allowedMimeTypePrefix) ||
+    !uploadedVideo.ContentLength ||
+    uploadedVideo.ContentLength > maxVideoFileSizeBytes
+  ) {
+    throw new HttpError(400, 'Uploaded file must be a video no larger than 50 MB')
+  }
 
   let source: SourceRow
   let job: VersionRow
@@ -190,11 +212,11 @@ export const createDubbingJob = async (req: Request, res: Response) => {
         .insert(sourceVideos)
         .values({
           userId,
-          originalFilename: file.originalname,
-          displayTitle: deriveDisplayTitle(file.originalname),
+          originalFilename: payload.originalFilename,
+          displayTitle: deriveDisplayTitle(payload.originalFilename),
           sourceLanguage: payload.sourceLanguage,
-          videoKey,
-          videoUrl: getStoredVideoUrl(videoKey),
+          videoKey: payload.videoKey,
+          videoUrl: getStoredVideoUrl(payload.videoKey),
         })
         .returning(sourceFields)
       if (!createdSource) throw new Error('Failed to create source video')
@@ -207,7 +229,7 @@ export const createDubbingJob = async (req: Request, res: Response) => {
       return { source: createdSource, job: createdJob }
     }))
   } catch {
-    await deleteObjectsFromR2([videoKey])
+    await deleteObjectsFromR2([payload.videoKey])
     throw new HttpError(500, 'Failed to create source video and language version')
   }
 

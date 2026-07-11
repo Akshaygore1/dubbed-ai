@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import {
   DeleteObjectsCommand,
-  PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -43,6 +44,47 @@ export const uploadVideoToR2 = async (input: {
       ContentType: input.contentType,
     }),
   )
+}
+
+export const createPresignedVideoUpload = async (input: {
+  key: string
+  contentType: string
+  userId: string
+}) => {
+  return getSignedUrl(
+    r2Client,
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET_NAME,
+      Key: input.key,
+      ContentType: input.contentType,
+      Metadata: { 'upload-owner': input.userId },
+    }),
+    { expiresIn: 15 * 60 },
+  )
+}
+
+export const getUploadedVideoMetadata = async (key: string) => {
+  try {
+    return await r2Client.send(
+      new HeadObjectCommand({
+        Bucket: env.R2_BUCKET_NAME,
+        Key: key,
+      }),
+    )
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      '$metadata' in error &&
+      typeof error.$metadata === 'object' &&
+      error.$metadata !== null &&
+      'httpStatusCode' in error.$metadata &&
+      error.$metadata.httpStatusCode === 404
+    ) {
+      return null
+    }
+    throw error
+  }
 }
 
 export const deleteObjectsFromR2 = async (keys: string[]) => {
