@@ -117,11 +117,11 @@ export function DubbingJobsTable() {
   };
 
   return (
-    <section className="border-t border-(--color-border)">
-      <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <section>
+      <div className="flex flex-col gap-3 border-b border-(--color-border) pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-(--color-text)">Recent jobs</h2>
-          <p className="mt-0.5 text-xs text-(--color-text-dim)">Processing status and finished videos</p>
+          <h2 className="text-lg font-semibold tracking-[-0.015em] text-(--color-text)">Your versions</h2>
+          <p className="mt-1 text-sm text-(--color-text-dim)">Track processing and collect finished videos.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -145,21 +145,22 @@ export function DubbingJobsTable() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center gap-2 border-t border-(--color-border) py-7 text-xs text-(--color-text-dim)">
+        <div className="flex items-center justify-center gap-2 py-10 text-xs text-(--color-text-dim)">
           <LoaderCircle className="size-4 animate-spin text-(--color-blue)" />
           Loading jobs
         </div>
       ) : isError ? (
-        <div className="flex items-center gap-2 border-t border-(--color-border) py-7 text-xs text-red-700">
+        <div className="flex items-center gap-2 py-10 text-xs text-red-700">
           <AlertCircle className="size-4 shrink-0" />
           {error instanceof Error ? error.message : "Unable to load dubbing jobs"}
         </div>
       ) : sortedJobs.length === 0 ? (
-        <div className="border-t border-(--color-border) py-7 text-xs leading-5 text-(--color-text-dim)">
-          No jobs yet. Submitted videos will appear here.
+        <div className="flex min-h-32 items-center justify-between gap-6 border-b border-(--color-border) py-7">
+          <div><p className="text-sm font-semibold text-(--color-text)">No versions in progress</p><p className="mt-1 text-sm leading-6 text-(--color-text-dim)">Your first submitted video will appear here with live status updates.</p></div>
+          <span className="hidden font-mono text-xs text-(--color-muted) sm:block">QUEUE EMPTY</span>
         </div>
       ) : (
-        <div className="border-t border-(--color-border)">
+        <div>
           {visibleJobs.map((job) => {
             const isActive =
               job.status === "pending" || job.status === "processing";
@@ -171,7 +172,7 @@ export function DubbingJobsTable() {
             return (
               <div
                 key={job.id}
-                className="grid gap-3 border-b border-(--color-border) py-3 transition sm:min-h-16 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+                className="grid gap-3 border-b border-(--color-border) py-4 transition hover:bg-(--color-surface) sm:min-h-20 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:px-3"
               >
                 <span className={`hidden size-2 rounded-full sm:block ${isActive ? "bg-(--color-accent)" : job.status === "completed" ? "bg-[#4b705d]" : job.status === "failed" ? "bg-[#a64139]" : "bg-[#8b6c35]"}`} aria-hidden="true" />
                 <div className="min-w-0">

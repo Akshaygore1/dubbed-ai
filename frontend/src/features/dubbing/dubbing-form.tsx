@@ -165,12 +165,12 @@ export function DubbingForm() {
   return (
     <form className="w-full border border-(--color-border) bg-(--color-surface)" onSubmit={handleSubmit(onSubmit)}>
       <DubbingFormHeader />
-      <div className="grid border-t border-(--color-border) md:grid-cols-[1.08fr_0.92fr]">
+      <div className="grid border-t border-(--color-border) md:grid-cols-[1.35fr_0.65fr]">
         <VideoUploadDropzone inputId={inputId} videoFile={videoFile} isDragging={isDragging} fileError={fileError} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onFileSelect={handleFileSelect} onClearFile={clearFile} />
         <div className="flex flex-col border-t border-(--color-border) md:border-l md:border-t-0">
           <TargetLanguageField control={control} error={errors.targetLanguage} disabled={mutation.isPending} />
           <AdvancedLanguageSettings control={control} error={errors.sourceLanguage} disabled={mutation.isPending} showAdvanced={showAdvanced} onToggle={() => setShowAdvanced((value) => !value)} />
-          <div className="mt-auto flex justify-end border-t border-(--color-border) p-3">
+          <div className="mt-auto border-t border-(--color-border) p-4">
             <SubmitButton isPending={mutation.isPending} />
           </div>
         </div>
@@ -181,9 +181,9 @@ export function DubbingForm() {
 
 function DubbingFormHeader() {
   return (
-    <div className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <h1 className="text-sm font-semibold text-(--color-text)">New dubbing job</h1>
-      <p className="text-xs text-(--color-text-dim)">MP4, MOV or WebM · 50 MB max</p>
+    <div className="flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div><h2 className="text-base font-semibold tracking-[-0.01em] text-(--color-text)">Create a dubbed version</h2><p className="mt-1 text-xs text-(--color-text-dim)">One video, one target language</p></div>
+      <p className="font-mono text-xs text-(--color-text-dim)">MP4 / MOV / WEBM · MAX 50 MB</p>
     </div>
   );
 }
@@ -215,7 +215,7 @@ function VideoUploadDropzone({
     <div>
       <div
         className={cn(
-          "relative flex min-h-40 items-center justify-center overflow-hidden px-4 py-5 text-center transition sm:min-h-44",
+          "relative flex min-h-56 items-center justify-center overflow-hidden px-5 py-8 text-center transition md:min-h-72",
           isDragging && "border-(--color-accent) bg-[#eef0f6]",
           videoFile &&
             !isDragging &&
@@ -258,14 +258,14 @@ function VideoUploadDropzone({
 
 function EmptyVideoDropzone() {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <UploadCloud className="size-4 text-[var(--color-text-dim)]" />
+    <div className="flex flex-col items-center gap-4">
+      <span className="flex size-11 items-center justify-center border border-(--color-border) bg-(--color-bg)"><UploadCloud className="size-4 text-[var(--color-text-dim)]" /></span>
       <div>
-        <p className="text-sm font-medium text-[var(--color-text)]">
-          Drop a video or browse
+        <p className="text-base font-semibold text-[var(--color-text)]">
+          Drop your finished video here
         </p>
-        <p className="mt-1 text-xs text-[var(--color-text-dim)]">
-          The original file stays unchanged
+        <p className="mt-1.5 text-sm text-[var(--color-text-dim)]">
+          or click anywhere to browse
         </p>
       </div>
     </div>
@@ -307,7 +307,7 @@ function TargetLanguageField({
   disabled: boolean;
 }) {
   return (
-    <div className="px-3 py-3">
+    <div className="px-4 py-4">
       <label
         className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-dim)]"
         htmlFor="targetLanguage"
@@ -427,7 +427,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     <button
       type="submit"
       disabled={isPending}
-      className="inline-flex h-9 items-center justify-center bg-[var(--color-text)] px-4 text-xs font-semibold text-[var(--color-surface)] transition hover:bg-[#30302c] disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-11 w-full items-center justify-center bg-[var(--color-text)] px-4 text-sm font-semibold text-[var(--color-surface)] transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isPending ? (
         <span className="flex items-center justify-center gap-2">
