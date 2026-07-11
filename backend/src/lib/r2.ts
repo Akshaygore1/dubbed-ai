@@ -59,7 +59,10 @@ export const createPresignedVideoUpload = async (input: {
       ContentType: input.contentType,
       Metadata: { 'upload-owner': input.userId },
     }),
-    { expiresIn: 15 * 60 },
+    {
+      expiresIn: 15 * 60,
+      unhoistableHeaders: new Set(['x-amz-meta-upload-owner']),
+    },
   )
 }
 

@@ -182,6 +182,7 @@ export const createDubbingUpload = async (req: Request, res: Response) => {
       uploadUrl,
       uploadHeaders: {
         'Content-Type': payload.contentType,
+        'x-amz-meta-upload-owner': userId,
       },
     },
   })
