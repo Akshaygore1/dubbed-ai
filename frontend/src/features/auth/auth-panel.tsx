@@ -156,7 +156,7 @@ export function AuthPanel() {
                   <User className="size-4 shrink-0 text-(--color-text-dim)" />
                   <input
                     aria-label="Name"
-                    className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
+                    className="auth-input w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                     value={name}
                     onChange={(event) => updateAuth({ name: event.target.value })}
                     placeholder="Your name"
@@ -174,7 +174,7 @@ export function AuthPanel() {
                 <Mail className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
                   aria-label="Email"
-                  className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
+                  className="auth-input w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="email"
                   value={email}
                   onChange={(event) => updateAuth({ email: event.target.value })}
@@ -192,7 +192,7 @@ export function AuthPanel() {
                 <Lock className="size-4 shrink-0 text-(--color-text-dim)" />
                 <input
                   aria-label="Password"
-                  className="w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
+                  className="auth-input w-full bg-transparent text-sm text-(--color-text) outline-none placeholder:text-(--color-muted)"
                   type="password"
                   value={password}
                   onChange={(event) =>
