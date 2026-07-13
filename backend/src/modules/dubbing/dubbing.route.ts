@@ -6,6 +6,7 @@ import {
   createDubbingUpload,
   createSourceVersion,
   deleteDubbingJob,
+  deleteSourceVideo,
   downloadDubbingJobVideo,
   getDubbingJob,
   listDubbingJobs,
@@ -18,6 +19,7 @@ dubbingRouter.post('/uploads', asyncHandler(createDubbingUpload))
 dubbingRouter.post('/', asyncHandler(createDubbingJob))
 dubbingRouter.get('/', asyncHandler(listDubbingJobs))
 dubbingRouter.post('/sources/:sourceId/versions', asyncHandler(createSourceVersion))
+dubbingRouter.delete('/sources/:sourceId', asyncHandler(deleteSourceVideo))
 dubbingRouter.get('/:id/download', asyncHandler(downloadDubbingJobVideo))
 dubbingRouter.delete('/:id', asyncHandler(deleteDubbingJob))
 dubbingRouter.get('/:id', asyncHandler(getDubbingJob))

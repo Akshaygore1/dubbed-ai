@@ -93,18 +93,23 @@ export const getUploadedVideoMetadata = async (key: string) => {
 export const deleteObjectsFromR2 = async (keys: string[]) => {
   const uniqueKeys = [...new Set(keys.filter((key) => key.length > 0))]
 
-  if (uniqueKeys.length === 0) {
-    return
-  }
+  for (let index = 0; index < uniqueKeys.length; index += 1000) {
+    const batch = uniqueKeys.slice(index, index + 1000)
+    const result = await r2Client.send(
+      new DeleteObjectsCommand({
+        Bucket: env.R2_BUCKET_NAME,
+        Delete: {
+          Objects: batch.map((key) => ({ Key: key })),
+        },
+      }),
+    )
 
-  await r2Client.send(
-    new DeleteObjectsCommand({
-      Bucket: env.R2_BUCKET_NAME,
-      Delete: {
-        Objects: uniqueKeys.map((key) => ({ Key: key })),
-      },
-    }),
-  )
+    if (result.Errors?.length) {
+      throw new Error(
+        `Failed to delete ${result.Errors.length} object${result.Errors.length === 1 ? '' : 's'} from R2`,
+      )
+    }
+  }
 }
 
 export const getSignedVideoUrl = async (key: string) => {

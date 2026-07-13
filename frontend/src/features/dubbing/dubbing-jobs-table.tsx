@@ -1,10 +1,11 @@
-import { AlertCircle, ChevronDown, Download, Languages, LoaderCircle } from "lucide-react";
+import { AlertCircle, ChevronDown, Download, Languages, LoaderCircle, Trash2 } from "lucide-react";
 import { type MouseEvent, useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useSnackbar } from "@/app/providers/snackbar-context";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DUBBING_LANGUAGES, getDubbingLanguageName } from "./dubbing-languages";
 import { useAddSourceVersion } from "./use-add-source-version";
+import { useDeleteSourceVideo } from "./use-delete-source-video";
 import {
   type DubbingJob,
   getDubbingJobDownloadUrl,
@@ -80,7 +81,9 @@ function State({ icon, text }: { icon?: React.ReactNode; text: string }) {
 
 function SourceGroup({ source, onDownload }: { source: SourceVideo; onDownload: (event: MouseEvent<HTMLAnchorElement>, versionId: string) => void }) {
   const active = source.versions.some(isActive);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const deleteMutation = useDeleteSourceVideo();
   const newestUpdate = source.versions[0]?.updatedAt ?? source.updatedAt;
   return (
     <details className="group border-b border-(--color-border)" open={active}>
@@ -90,30 +93,88 @@ function SourceGroup({ source, onDownload }: { source: SourceVideo; onDownload: 
           <div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-semibold text-(--color-text)">{source.displayTitle}</h3>{active ? <span className="ui-status ui-status-active">active</span> : null}</div>
           <p className="mt-1 text-xs text-(--color-text-dim)">{getDubbingLanguageName(source.sourceLanguage)} source · {source.versions.length} {source.versions.length === 1 ? "language version" : "language versions"} · {active ? "Processing activity" : `Last activity ${formatUpdatedTime(newestUpdate)}`}</p>
         </div>
-        <button
-          type="button"
-          aria-label="Dub in another language"
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 border border-(--color-border) px-2.5 text-xs font-medium text-(--color-text) transition enabled:hover:border-(--color-text) disabled:cursor-not-allowed disabled:opacity-45"
-          disabled={active}
-          aria-describedby={active ? `add-version-disabled-${source.id}` : undefined}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setDialogOpen(true);
-          }}
-        >
-          <Languages className="size-3.5" aria-hidden="true" />
-          <span className="hidden sm:inline">Dub in another language</span>
-          <span className="sm:hidden">Add language</span>
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label="Dub in another language"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 border border-(--color-border) px-2.5 text-xs font-medium text-(--color-text) outline-none transition enabled:hover:border-(--color-text) focus-visible:ring-2 focus-visible:ring-(--color-blue) focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={active}
+            aria-describedby={active ? `source-actions-disabled-${source.id}` : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setAddDialogOpen(true);
+            }}
+          >
+            <Languages className="size-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">Dub in another language</span>
+            <span className="sm:hidden">Add language</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete ${source.displayTitle} and all language versions`}
+            className="inline-flex size-8 shrink-0 items-center justify-center border border-red-200 text-red-700 outline-none transition enabled:hover:border-red-400 enabled:hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={active || deleteMutation.isPending}
+            aria-describedby={active ? `source-actions-disabled-${source.id}` : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setDeleteDialogOpen(true);
+            }}
+          >
+            {deleteMutation.isPending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}
+          </button>
+        </div>
       </summary>
-      {active ? <p id={`add-version-disabled-${source.id}`} className="px-3 pb-3 text-xs text-(--color-text-dim) sm:pl-10">Wait for the active language version to finish before adding another.</p> : null}
+      {active ? <p id={`source-actions-disabled-${source.id}`} className="px-3 pb-3 text-xs text-(--color-text-dim) sm:pl-10">Wait for the active language version to finish before adding another or deleting this source.</p> : null}
       <div className="border-t border-(--color-border) bg-(--color-surface) px-3 sm:pl-10">
         {source.versions.map((version) => <VersionRow key={version.id} version={version} onDownload={onDownload} />)}
       </div>
-      <AddLanguageDialog source={source} open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddLanguageDialog source={source} open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+      <DeleteSourceDialog source={source} open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} mutation={deleteMutation} />
     </details>
   );
+}
+
+function DeleteSourceDialog({ source, open, onOpenChange, mutation }: { source: SourceVideo; open: boolean; onOpenChange: (open: boolean) => void; mutation: ReturnType<typeof useDeleteSourceVideo> }) {
+  const { showSnackbar } = useSnackbar();
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!mutation.isPending) {
+      if (!nextOpen) mutation.reset();
+      onOpenChange(nextOpen);
+    }
+  };
+
+  const confirmDelete = () => {
+    mutation.mutate(source.id, {
+      onSuccess: () => {
+        showSnackbar({ message: `${source.displayTitle} and all of its media were permanently deleted.`, variant: "success" });
+        onOpenChange(false);
+      },
+      onError: () => {
+        showSnackbar({ message: "The source was not deleted. Wait for active processing to finish, then try again.", variant: "error" });
+      },
+    });
+  };
+
+  return <Dialog open={open} onOpenChange={handleOpenChange}>
+    <DialogContent
+      closeDisabled={mutation.isPending}
+      onEscapeKeyDown={(event) => { if (mutation.isPending) event.preventDefault(); }}
+      onPointerDownOutside={(event) => { if (mutation.isPending) event.preventDefault(); }}
+    >
+      <DialogHeader>
+        <DialogTitle>Delete source video?</DialogTitle>
+        <DialogDescription>This permanently deletes the original upload, every language version, and all generated audio and video files for {source.displayTitle}. This cannot be undone.</DialogDescription>
+      </DialogHeader>
+      {mutation.isError ? <p role="alert" className="text-sm leading-6 text-red-700">The source is still in your workspace. Wait for any active processing to finish and try again. If the problem continues, contact support.</p> : null}
+      <DialogFooter>
+        <button type="button" className="h-10 border border-(--color-border) px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45" disabled={mutation.isPending} onClick={() => handleOpenChange(false)}>Cancel</button>
+        <button type="button" className="inline-flex h-10 items-center justify-center gap-2 bg-red-700 px-4 text-sm font-medium text-white outline-none transition hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45" disabled={mutation.isPending} onClick={confirmDelete}>{mutation.isPending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Trash2 className="size-4" aria-hidden="true" />}{mutation.isPending ? "Deleting…" : "Delete permanently"}</button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>;
 }
 
 function AddLanguageDialog({ source, open, onOpenChange }: { source: SourceVideo; open: boolean; onOpenChange: (open: boolean) => void }) {

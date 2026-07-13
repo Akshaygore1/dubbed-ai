@@ -143,7 +143,12 @@ const getVersionIdParam = (req: Request) => {
 
 const getSourceIdParam = (req: Request) => {
   const sourceId = req.params.sourceId
-  if (typeof sourceId !== 'string' || sourceId.length === 0) {
+  if (
+    typeof sourceId !== 'string' ||
+    !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(
+      sourceId,
+    )
+  ) {
     throw new HttpError(404, 'Source video not found')
   }
   return sourceId
@@ -357,6 +362,69 @@ export const downloadDubbingJobVideo = async (req: Request, res: Response) => {
   if (row.version.status !== 'completed' || !row.version.dubbedVideoKey) throw new HttpError(409, 'Dubbed video is not ready for download')
   const url = await getSignedObjectDownloadUrl(row.version.dubbedVideoKey, `dubbed-video-${row.version.id}.mp4`)
   res.redirect(url)
+}
+
+export const deleteSourceVideo = async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(res)
+  const sourceId = getSourceIdParam(req)
+
+  try {
+    await db.transaction(async (tx) => {
+      const [source] = await tx
+        .select(sourceFields)
+        .from(sourceVideos)
+        .where(and(eq(sourceVideos.id, sourceId), eq(sourceVideos.userId, userId)))
+        .for('update')
+
+      if (!source) throw new HttpError(404, 'Source video not found')
+
+      const versions = await tx
+        .select(versionFields)
+        .from(dubbingJobs)
+        .where(eq(dubbingJobs.sourceId, source.id))
+
+      if (
+        versions.some(
+          (version) =>
+            version.status === 'pending' || version.status === 'processing',
+        )
+      ) {
+        throw new HttpError(
+          409,
+          'Active language versions must finish before the source can be deleted',
+        )
+      }
+
+      const objectKeys = [
+        ...new Set(
+          [
+            source.videoKey,
+            ...versions.flatMap((version) => [
+              version.audioKey,
+              version.dubbedAudioKey,
+              version.dubbedVideoKey,
+            ]),
+          ].filter((key): key is string => Boolean(key)),
+        ),
+      ]
+
+      try {
+        await deleteObjectsFromR2(objectKeys)
+      } catch {
+        throw new HttpError(500, 'Failed to delete all source media files')
+      }
+
+      await tx.delete(dubbingJobs).where(eq(dubbingJobs.sourceId, source.id))
+      await tx
+        .delete(sourceVideos)
+        .where(and(eq(sourceVideos.id, source.id), eq(sourceVideos.userId, userId)))
+    })
+  } catch (error) {
+    if (error instanceof HttpError) throw error
+    throw new HttpError(500, 'Failed to delete the source video')
+  }
+
+  res.status(204).send()
 }
 
 // Kept as a backwards-compatible endpoint. It removes only version-owned artifacts;

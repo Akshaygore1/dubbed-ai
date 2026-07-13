@@ -33,9 +33,10 @@ function DialogOverlay({
 export function DialogContent({
   className,
   children,
+  closeDisabled = false,
   ref,
   ...props
-}: ComponentProps<typeof DialogPrimitive.Content>) {
+}: ComponentProps<typeof DialogPrimitive.Content> & { closeDisabled?: boolean }) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -48,7 +49,7 @@ export function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-(--color-text-dim) outline-none transition hover:bg-(--color-bg) hover:text-(--color-text) focus-visible:ring-2 focus-visible:ring-(--color-blue)">
+        <DialogPrimitive.Close disabled={closeDisabled} className="absolute right-4 top-4 rounded-md p-1 text-(--color-text-dim) outline-none transition enabled:hover:bg-(--color-bg) enabled:hover:text-(--color-text) focus-visible:ring-2 focus-visible:ring-(--color-blue) disabled:cursor-not-allowed disabled:opacity-45">
           <X className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

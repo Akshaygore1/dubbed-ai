@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { dubbingJobs, sourceVideos } from '../../src/db/schema.js'
 import { HttpError } from '../../src/lib/http-error.js'
-import { createDubbingJob, createDubbingUpload, createSourceVersion, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
+import { createDubbingJob, createDubbingUpload, createSourceVersion, deleteSourceVideo, downloadDubbingJobVideo, listDubbingJobs } from '../../src/modules/dubbing/dubbing.controller.js'
 
 const mocks = vi.hoisted(() => ({
   db: { insert: vi.fn(), select: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
@@ -254,5 +255,157 @@ describe('reusable source-video controller', () => {
   it('maps a database uniqueness race to a conflict', async () => {
     mocks.db.transaction.mockRejectedValue(Object.assign(new Error('duplicate'), { code: '23505' }))
     await expect(createSourceVersion({ params: { sourceId: source.id }, body: { targetLanguage: 'ta-IN' } } as unknown as Request, response())).rejects.toMatchObject<HttpError>({ statusCode: 409 })
+  })
+
+  describe('deleting a source video', () => {
+    const arrangeLockedSource = (versions: unknown[]) => {
+      const sourceWhere = vi.fn(() => ({ for: vi.fn().mockResolvedValue([source]) }))
+      const versionsWhere = vi.fn().mockResolvedValue(versions)
+      mocks.db.select
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: sourceWhere })) })
+        .mockReturnValueOnce({ from: vi.fn(() => ({ where: versionsWhere })) })
+    }
+
+    const arrangeMissingScopedSource = () => {
+      mocks.db.select.mockReturnValue({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({ for: vi.fn().mockResolvedValue([]) })),
+        })),
+      })
+    }
+
+    it('returns not found for a missing source without deleting media or records', async () => {
+      arrangeMissingScopedSource()
+
+      await expect(
+        deleteSourceVideo(
+          { params: { sourceId: source.id } } as unknown as Request,
+          response(),
+        ),
+      ).rejects.toMatchObject<HttpError>({
+        statusCode: 404,
+        message: 'Source video not found',
+      })
+      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+      expect(mocks.db.delete).not.toHaveBeenCalled()
+    })
+
+    it('uses the ownership predicate and returns the same not found for an unowned source', async () => {
+      arrangeMissingScopedSource()
+
+      await expect(
+        deleteSourceVideo(
+          { params: { sourceId: source.id } } as unknown as Request,
+          response(),
+        ),
+      ).rejects.toMatchObject<HttpError>({ statusCode: 404 })
+      expect(mocks.eq).toHaveBeenCalledWith(sourceVideos.userId, 'user_123')
+      expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+    })
+
+    it('returns the same not found for a malformed source id before querying PostgreSQL', async () => {
+      await expect(
+        deleteSourceVideo(
+          { params: { sourceId: 'not-a-uuid' } } as unknown as Request,
+          response(),
+        ),
+      ).rejects.toMatchObject<HttpError>({
+        statusCode: 404,
+        message: 'Source video not found',
+      })
+      expect(mocks.db.transaction).not.toHaveBeenCalled()
+    })
+
+    it.each(['pending', 'processing'] as const)(
+      'rejects deletion while a version is %s',
+      async (status) => {
+        arrangeLockedSource([{ ...version, status }])
+
+        await expect(
+          deleteSourceVideo(
+            { params: { sourceId: source.id } } as unknown as Request,
+            response(),
+          ),
+        ).rejects.toMatchObject<HttpError>({ statusCode: 409 })
+        expect(mocks.deleteObjectsFromR2).not.toHaveBeenCalled()
+        expect(mocks.db.delete).not.toHaveBeenCalled()
+      },
+    )
+
+    it('deduplicates all source and version media, then deletes children before the source', async () => {
+      const completed = {
+        ...version,
+        status: 'completed' as const,
+        audioKey: 'audio/shared.mp3',
+        dubbedAudioKey: 'dubbed-audio/hi.m4a',
+        dubbedVideoKey: 'dubbed/hi.mp4',
+      }
+      const failed = {
+        ...version,
+        id: 'dc868836-2efe-44c7-988d-45337927abdc',
+        status: 'failed' as const,
+        targetLanguage: 'ta-IN',
+        audioKey: 'audio/shared.mp3',
+        dubbedAudioKey: 'dubbed-audio/ta.m4a',
+        dubbedVideoKey: null,
+      }
+      arrangeLockedSource([completed, failed])
+      const childWhere = vi.fn().mockResolvedValue(undefined)
+      const sourceWhere = vi.fn().mockResolvedValue(undefined)
+      mocks.db.delete
+        .mockReturnValueOnce({ where: childWhere })
+        .mockReturnValueOnce({ where: sourceWhere })
+      const res = response()
+
+      await deleteSourceVideo(
+        { params: { sourceId: source.id } } as unknown as Request,
+        res,
+      )
+
+      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledWith([
+        'videos/launch.mp4',
+        'audio/shared.mp3',
+        'dubbed-audio/hi.m4a',
+        'dubbed/hi.mp4',
+        'dubbed-audio/ta.m4a',
+      ])
+      expect(mocks.deleteObjectsFromR2.mock.invocationCallOrder[0]).toBeLessThan(
+        mocks.db.delete.mock.invocationCallOrder[0],
+      )
+      expect(mocks.db.delete).toHaveBeenNthCalledWith(1, dubbingJobs)
+      expect(mocks.db.delete).toHaveBeenNthCalledWith(2, sourceVideos)
+      expect(res.status).toHaveBeenCalledWith(204)
+      expect(res.send).toHaveBeenCalled()
+    })
+
+    it('retains database records when complete R2 deletion cannot be confirmed', async () => {
+      arrangeLockedSource([{ ...version, status: 'completed' }])
+      mocks.deleteObjectsFromR2.mockRejectedValue(
+        new Error('R2 returned per-object errors'),
+      )
+
+      await expect(
+        deleteSourceVideo(
+          { params: { sourceId: source.id } } as unknown as Request,
+          response(),
+        ),
+      ).rejects.toMatchObject<HttpError>({ statusCode: 500 })
+      expect(mocks.db.delete).not.toHaveBeenCalled()
+    })
+
+    it('returns a retry-safe failure when database cleanup fails after storage cleanup', async () => {
+      arrangeLockedSource([{ ...version, status: 'completed' }])
+      mocks.db.delete.mockReturnValue({
+        where: vi.fn().mockRejectedValue(new Error('database unavailable')),
+      })
+
+      await expect(
+        deleteSourceVideo(
+          { params: { sourceId: source.id } } as unknown as Request,
+          response(),
+        ),
+      ).rejects.toMatchObject<HttpError>({ statusCode: 500 })
+      expect(mocks.deleteObjectsFromR2).toHaveBeenCalledTimes(1)
+    })
   })
 })
