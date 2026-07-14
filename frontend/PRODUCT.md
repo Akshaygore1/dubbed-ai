@@ -14,11 +14,11 @@ Independent video creators and educators who have finished video content and wan
 
 ## Product Purpose
 
-DubStudio helps creators reach new-language audiences quickly, produce professional localized videos, and reduce the time and cost of dubbing.
+Dubbed AI helps creators reach new-language audiences quickly, produce professional localized videos, and reduce the time and cost of dubbing.
 
 ## Positioning
 
-DubStudio gives independent creators and educators a simple, affordable way to turn one finished video into professional multilingual versions.
+Dubbed AI gives independent creators and educators a simple, affordable way to turn one finished video into professional multilingual versions.
 
 ## Brand Personality
 
@@ -26,7 +26,7 @@ Capable, clear, and trustworthy.
 
 ## Anti-references
 
-DubStudio should not resemble a generic AI SaaS template, an intimidating professional editing suite, or an overly playful consumer app.
+Dubbed AI should not resemble a generic AI SaaS template, an intimidating professional editing suite, or an overly playful consumer app.
 
 ## Design Principles
 

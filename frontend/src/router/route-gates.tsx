@@ -2,6 +2,7 @@ import { LoaderCircle } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { useCurrentUser } from '@/features/auth/use-current-user'
 import { authClient } from '@/lib/auth-client'
+import { APP_NAME } from '@/lib/brand'
 import { AdminUsersPage } from '@/pages/admin-users-page'
 import { AuthPage } from '@/pages/auth-page'
 import { PendingPage } from '@/pages/pending-page'
@@ -129,7 +130,7 @@ function RouteLoader({ label }: { label: string }) {
     <main className="flex min-h-screen items-center justify-center bg-(--color-bg) px-5 text-(--color-text)">
       <div className="w-full max-w-sm border-t border-(--color-text) pt-5">
         <div className="flex items-center gap-3 text-sm font-medium"><LoaderCircle className="size-4 animate-spin text-(--color-accent)" />{label}</div>
-        <p className="mt-3 text-sm text-(--color-text-dim)">DubStudio is preparing the next screen.</p>
+        <p className="mt-3 text-sm text-(--color-text-dim)">{APP_NAME} is preparing the next screen.</p>
       </div>
     </main>
   )

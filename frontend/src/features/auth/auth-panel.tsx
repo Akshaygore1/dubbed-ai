@@ -9,6 +9,7 @@ import {
 import { type FormEvent, useReducer } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
+import { APP_NAME } from "@/lib/brand";
 import { Brand } from "@/pages/landing-page";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -16,7 +17,7 @@ type AuthMode = "sign-in" | "sign-up";
 const authCopy = {
   "sign-in": {
     eyebrow: "Private studio",
-    title: "Sign in to DubStudio.",
+    title: `Sign in to ${APP_NAME}.`,
     action: "Sign in",
     alternate: "Create an account",
   },

@@ -1,6 +1,6 @@
-# DubStudio
+# Dubbed AI
 
-DubStudio is a multilingual video-dubbing platform for independent creators and educators. It turns a finished source video into localized versions while keeping upload, processing progress, and completed downloads in one workspace.
+Dubbed AI is a multilingual video-dubbing platform for independent creators and educators. It turns a finished source video into localized versions while keeping upload, processing progress, and completed downloads in one workspace.
 
 ## How it works
 

@@ -2,6 +2,7 @@ import { AudioWaveform, KeyRound, LoaderCircle, Mail, Shield } from 'lucide-reac
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAdminLoginMutation } from '@/features/admin/use-admin-session'
+import { APP_NAME } from '@/lib/brand'
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
@@ -34,7 +35,7 @@ export function AdminLoginPage() {
               <AudioWaveform className="size-5" />
             </span>
             <div>
-              <p className="font-serif text-2xl leading-none">DubStudio</p>
+              <p className="font-serif text-2xl leading-none">{APP_NAME}</p>
               <p className="mt-1 font-mono text-xs text-(--color-text-dim)">admin access</p>
             </div>
           </div>

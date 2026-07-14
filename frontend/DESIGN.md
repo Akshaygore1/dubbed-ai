@@ -1,5 +1,5 @@
 ---
-name: DubStudio
+name: Dubbed AI
 description: A calm localization studio for turning finished videos into multilingual versions.
 colors:
   gallery-ground: "#f5f4f0"
@@ -84,13 +84,13 @@ components:
     rounded: "{rounded.square}"
 ---
 
-# Design System: DubStudio
+# Design System: Dubbed AI
 
 ## 1. Overview
 
 **Creative North Star: "The Localization Studio"**
 
-DubStudio feels like a calm, polished studio where finished work is prepared for a new audience. The public experience uses an editorial serif and generous composition to frame the creator's work; authenticated surfaces become denser, quieter, and operational without losing the same material language.
+Dubbed AI feels like a calm, polished studio where finished work is prepared for a new audience. The public experience uses an editorial serif and generous composition to frame the creator's work; authenticated surfaces become denser, quieter, and operational without losing the same material language.
 
 The system is refined and restrained, built from pale neutral work surfaces, strong ink, crisp rules, and a muted translation blue reserved for state and focus. It explicitly rejects generic AI SaaS presentation, intimidating editor complexity, and overly playful consumer styling.
 
@@ -158,7 +158,7 @@ The palette resembles a quiet gallery workspace: neutral enough to foreground vi
 
 ## 4. Elevation
 
-DubStudio is flat by default. Depth comes from canvas-to-surface tonal changes, one-pixel structural lines, and overlays with explicit modal purpose. Shadows are exceptional: dialogs and transient snackbars may lift above the task surface, but ordinary forms, rows, and buttons remain shadowless.
+Dubbed AI is flat by default. Depth comes from canvas-to-surface tonal changes, one-pixel structural lines, and overlays with explicit modal purpose. Shadows are exceptional: dialogs and transient snackbars may lift above the task surface, but ordinary forms, rows, and buttons remain shadowless.
 
 ### Shadow Vocabulary
 
@@ -218,7 +218,7 @@ The signature work surface is a large, calm target rather than a decorative uplo
 
 ### Don't:
 
-- **Don't** make DubStudio resemble a generic AI SaaS template.
+- **Don't** make Dubbed AI resemble a generic AI SaaS template.
 - **Don't** turn the workflow into an intimidating professional editing suite.
 - **Don't** introduce overly playful consumer-app styling.
 - **Don't** add rounded cards, decorative shadows, gradients, or glass effects to make empty space feel designed.

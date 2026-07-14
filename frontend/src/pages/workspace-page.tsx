@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { DubbingForm } from "@/features/dubbing/dubbing-form";
 import { DubbingJobsTable } from "@/features/dubbing/dubbing-jobs-table";
 import { authClient } from "@/lib/auth-client";
+import { APP_NAME } from "@/lib/brand";
 import { Brand } from "./landing-page";
 
 export function WorkspacePage() {
@@ -53,7 +54,7 @@ export function WorkspacePage() {
           <div className="max-w-2xl">
             <p className="text-sm font-medium text-(--color-accent)">Localization studio</p>
             <h1 className="mt-3 font-serif text-4xl leading-[0.98] tracking-[-0.035em] text-balance sm:text-5xl">Prepare your next language version.</h1>
-            <p className="mt-5 max-w-xl leading-7 text-(--color-text-dim)">Bring a finished cut. DubStudio translates, voices, and prepares a shareable version while your original stays untouched.</p>
+            <p className="mt-5 max-w-xl leading-7 text-(--color-text-dim)">Bring a finished cut. {APP_NAME} translates, voices, and prepares a shareable version while your original stays untouched.</p>
           </div>
           <ol className="grid grid-cols-3 divide-x divide-(--color-border) border-y border-(--color-border) py-3">
             <WorkspaceStep number="1" label="Upload" /><WorkspaceStep number="2" label="Choose" /><WorkspaceStep number="3" label="Download" />

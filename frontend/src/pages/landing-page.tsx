@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { APP_NAME } from "@/lib/brand";
 
 const stages = [
   { label: "Source", value: "English", icon: UploadCloud },
@@ -72,12 +73,12 @@ export function LandingPage() {
               <p className="text-sm font-medium text-(--color-accent)">From upload to Indian audiences</p>
               <h2 className="mt-4 max-w-md font-serif text-4xl leading-[1.02] tracking-[-0.03em] sm:text-5xl">Keep the edit. Speak their language.</h2>
             </div>
-            <p className="mt-10 max-w-sm leading-7 text-(--color-text-dim)">DubStudio keeps the workflow linear, so you can prepare an Indian-language version without learning a professional editing suite.</p>
+            <p className="mt-10 max-w-sm leading-7 text-(--color-text-dim)">{APP_NAME} keeps the workflow linear, so you can prepare an Indian-language version without learning a professional editing suite.</p>
           </div>
 
           <ol className="divide-y divide-(--color-border)">
             <ProcessRow number="01" title="Bring the finished cut" copy="Upload the video you already publish. Your original stays untouched." icon={Film} />
-            <ProcessRow number="02" title="Choose an Indian language" copy="Select the source and target languages; DubStudio prepares the translation and voice." icon={Languages} />
+            <ProcessRow number="02" title="Choose an Indian language" copy={`Select the source and target languages; ${APP_NAME} prepares the translation and voice.`} icon={Languages} />
             <ProcessRow number="03" title="Leave with a shareable version" copy="Track processing in the workspace, then download the completed video." icon={Download} />
           </ol>
         </div>
@@ -160,5 +161,5 @@ function AudienceRow({ title, copy, icon: Icon }: { title: string; copy: string;
 }
 
 export function Brand() {
-  return <Link className="flex items-center gap-2 text-(--color-text)" to="/"><span className="brand-mark"><AudioWaveform /></span><span className="text-sm font-semibold tracking-[-0.02em]">DubStudio</span></Link>;
+  return <Link className="flex items-center gap-2 text-(--color-text)" to="/"><span className="brand-mark"><AudioWaveform /></span><span className="text-sm font-semibold tracking-[-0.02em]">{APP_NAME}</span></Link>;
 }
