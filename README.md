@@ -2,6 +2,8 @@
 
 Dubbed AI is a multilingual video-dubbing platform for independent creators and educators. It turns a finished source video into localized versions while keeping upload, processing progress, and completed downloads in one workspace.
 
+./demo.mp4
+
 ## How it works
 
 1. A creator registers or signs in; new accounts remain locked until an administrator approves them.
