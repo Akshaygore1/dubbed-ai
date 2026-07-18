@@ -2,7 +2,7 @@
 
 Dubbed AI is a multilingual video-dubbing platform for independent creators and educators. It turns a finished source video into localized versions while keeping upload, processing progress, and completed downloads in one workspace.
 
-./demo.mp4
+https://github.com/Akshaygore1/dubbed-ai/blob/main/demo.mp4?raw=true
 
 ## How it works
 
